@@ -6,3 +6,128 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum TransferStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum TransactionType {
+  TOP_UP
+  PAYMENT
+  TRANSFER
+}
+
+enum Direction {
+  CREDIT
+  DEBIT
+}
+
+model User {
+  id                  String   @id @default(uuid())
+  firstName           String   @map("first_name")
+  lastName            String   @map("last_name")
+  phoneNumber         String   @unique @map("phone_number")
+  address             String
+  pinHash             String   @map("pin_hash")
+  balance             BigInt   @default(0)
+  failedLoginAttempts Int      @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  topUps             TopUp[]
+  payments           Payment[]
+  sentTransfers      Transfer[]     @relation("TransferSender")
+  receivedTransfers  Transfer[]     @relation("TransferRecipient")
+  transactions       Transaction[]
+  refreshTokens      RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model TopUp {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  amount        BigInt
+  balanceBefore BigInt   @map("balance_before")
+  balanceAfter  BigInt   @map("balance_after")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("top_ups")
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  amount         BigInt
+  remarks        String?
+  balanceBefore  BigInt   @map("balance_before")
+  balanceAfter   BigInt   @map("balance_after")
+  idempotencyKey String   @map("idempotency_key")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, idempotencyKey])
+  @@map("payments")
+}
+
+model Transfer {
+  id             String         @id @default(uuid())
+  senderId       String         @map("sender_id")
+  recipientId    String         @map("recipient_id")
+  amount         BigInt
+  remarks        String?
+  status         TransferStatus @default(PENDING)
+  balanceBefore  BigInt         @map("balance_before")
+  balanceAfter   BigInt         @map("balance_after")
+  idempotencyKey String         @map("idempotency_key")
+  retryCount     Int            @default(0) @map("retry_count")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  sender    User @relation("TransferSender", fields: [senderId], references: [id])
+  recipient User @relation("TransferRecipient", fields: [recipientId], references: [id])
+
+  @@unique([senderId, idempotencyKey])
+  @@index([recipientId])
+  @@index([status])
+  @@map("transfers")
+}
+
+model Transaction {
+  id              String          @id @default(uuid())
+  userId          String          @map("user_id")
+  transactionType TransactionType @map("transaction_type")
+  direction       Direction
+  referenceId     String          @map("reference_id")
+  amount          BigInt
+  balanceBefore   BigInt          @map("balance_before")
+  balanceAfter    BigInt          @map("balance_after")
+  status          String
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("transactions")
+}
