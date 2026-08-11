@@ -27,9 +27,11 @@ const prismaMock = {
   user: {
     create: jest.fn(),
     findUnique: jest.fn(),
+    update: jest.fn(),
   },
   refreshToken: {
     create: jest.fn(),
+    findMany: jest.fn(),
   },
 };
 
@@ -111,7 +113,10 @@ describe('AuthService', () => {
       prismaMock.user.findUnique.mockResolvedValue({
         id: FAKE_USER_ID,
         pinHash: HASHED_PIN,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
       });
+      prismaMock.user.update.mockResolvedValue({});
       jwtServiceMock.sign
         .mockReturnValueOnce('fake-access-token')
         .mockReturnValueOnce('fake-refresh-token');
@@ -134,7 +139,10 @@ describe('AuthService', () => {
       prismaMock.user.findUnique.mockResolvedValue({
         id: FAKE_USER_ID,
         pinHash: HASHED_PIN,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
       });
+      prismaMock.user.update.mockResolvedValue({});
 
       await expect(
         service.login({
@@ -151,7 +159,10 @@ describe('AuthService', () => {
       prismaMock.user.findUnique.mockResolvedValue({
         id: FAKE_USER_ID,
         pinHash: HASHED_PIN,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
       });
+      prismaMock.user.update.mockResolvedValue({});
 
       let caught: AppException | undefined;
       try {
@@ -184,7 +195,10 @@ describe('AuthService', () => {
       prismaMock.user.findUnique.mockResolvedValue({
         id: FAKE_USER_ID,
         pinHash: HASHED_PIN,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
       });
+      prismaMock.user.update.mockResolvedValue({});
       jwtServiceMock.sign.mockReturnValue('any-token');
       prismaMock.refreshToken.create.mockResolvedValue({});
 
@@ -211,7 +225,10 @@ describe('AuthService', () => {
       prismaMock.user.findUnique.mockResolvedValue({
         id: FAKE_USER_ID,
         pinHash: HASHED_PIN,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
       });
+      prismaMock.user.update.mockResolvedValue({});
       jwtServiceMock.sign
         .mockReturnValueOnce('plain-access')
         .mockReturnValueOnce('plain-refresh');
@@ -227,6 +244,101 @@ describe('AuthService', () => {
       expect(storedHash).not.toBe('plain-refresh');
       const isValid = await bcrypt.compare('plain-refresh', storedHash);
       expect(isValid).toBe(true);
+    });
+  });
+
+  // UT-AUTH-05 ----------------------------------------------------------------
+  describe('UT-AUTH-05: failed login attempt counter', () => {
+    it('increments failedLoginAttempts on each wrong-pin attempt', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: FAKE_USER_ID,
+        pinHash: HASHED_PIN,
+        failedLoginAttempts: 2,
+        lockedUntil: null,
+      });
+      prismaMock.user.update.mockResolvedValue({});
+
+      await expect(
+        service.login({ phone_number: '081200000001', pin: '000000' }),
+      ).rejects.toMatchObject({ errorCode: 'INVALID_CREDENTIALS' });
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: FAKE_USER_ID },
+        data: { failedLoginAttempts: 3 },
+      });
+    });
+
+    it('resets failedLoginAttempts to 0 and clears lockedUntil on successful login', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: FAKE_USER_ID,
+        pinHash: HASHED_PIN,
+        failedLoginAttempts: 3,
+        lockedUntil: null,
+      });
+      prismaMock.user.update.mockResolvedValue({});
+      jwtServiceMock.sign
+        .mockReturnValueOnce('access')
+        .mockReturnValueOnce('refresh');
+      prismaMock.refreshToken.create.mockResolvedValue({});
+
+      await service.login({ phone_number: '081200000001', pin: PLAIN_PIN });
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: FAKE_USER_ID },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
+    });
+  });
+
+  // UT-AUTH-06 ----------------------------------------------------------------
+  describe('UT-AUTH-06: 5th failed attempt triggers lockout', () => {
+    it('sets lockedUntil ~15 minutes in the future when attempts reach 5', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: FAKE_USER_ID,
+        pinHash: HASHED_PIN,
+        failedLoginAttempts: 4,
+        lockedUntil: null,
+      });
+      prismaMock.user.update.mockResolvedValue({});
+
+      const before = Date.now();
+      await expect(
+        service.login({ phone_number: '081200000001', pin: '000000' }),
+      ).rejects.toMatchObject({ errorCode: 'INVALID_CREDENTIALS' });
+      const after = Date.now();
+
+      const updateCall = prismaMock.user.update.mock.calls[0][0] as {
+        data: { failedLoginAttempts: number; lockedUntil: Date };
+      };
+      expect(updateCall.data.failedLoginAttempts).toBe(5);
+      expect(updateCall.data.lockedUntil.getTime()).toBeGreaterThanOrEqual(
+        before + 15 * 60 * 1000,
+      );
+      expect(updateCall.data.lockedUntil.getTime()).toBeLessThanOrEqual(
+        after + 15 * 60 * 1000,
+      );
+    });
+
+    it('throws ACCOUNT_LOCKED (429) without checking pin while lockedUntil is in the future', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: FAKE_USER_ID,
+        pinHash: HASHED_PIN,
+        failedLoginAttempts: 5,
+        lockedUntil: new Date(Date.now() + 10 * 60 * 1000),
+      });
+
+      let caught: AppException | undefined;
+      try {
+        // Correct pin — should still be rejected because the account is locked
+        await service.login({ phone_number: '081200000001', pin: PLAIN_PIN });
+      } catch (e) {
+        caught = e as AppException;
+      }
+
+      expect(caught).toBeInstanceOf(AppException);
+      expect(caught?.errorCode).toBe('ACCOUNT_LOCKED');
+      expect(caught?.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      expect(prismaMock.user.update).not.toHaveBeenCalled();
     });
   });
 });

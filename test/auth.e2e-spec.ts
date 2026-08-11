@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -185,5 +186,153 @@ describe('Auth E2E', () => {
     expect(res.body.status).toBe('FAILED');
     expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
     expect(res.body.error.message).toBe("Phone number and pin doesn't match");
+  });
+
+  // ---------------------------------------------------------------------------
+  // E2E-LOGIN-03: 5 consecutive wrong pins → 6th attempt (even correct) → 429
+  // ---------------------------------------------------------------------------
+  it('E2E-LOGIN-03: pin salah 5x berturut-turut, percobaan ke-6 → 429 ACCOUNT_LOCKED', async () => {
+    const phone = `0812${uniqueSuffix()}`;
+    const correctPin = '135790';
+
+    await request(app.getHttpServer())
+      .post('/api/v1/register')
+      .send({
+        first_name: 'Kunto',
+        last_name: 'Aji',
+        phone_number: phone,
+        address: 'Jl. Lockout No. 1',
+        pin: correctPin,
+      })
+      .expect(201);
+
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/login')
+        .send({ phone_number: phone, pin: '000000' })
+        .expect(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+    }
+
+    // 6th attempt uses the CORRECT pin — must still be rejected as locked
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/login')
+      .send({ phone_number: phone, pin: correctPin })
+      .expect(429);
+
+    expect(res.body.status).toBe('FAILED');
+    expect(res.body.error.code).toBe('ACCOUNT_LOCKED');
+    expect(res.body.error.message).toBe(
+      'Too many failed attempts, try again in 15 minutes',
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // POST /refresh-token
+  // ---------------------------------------------------------------------------
+  describe('POST /refresh-token', () => {
+    it('E2E-REFRESH-01: refresh_token valid → 200, access_token baru', async () => {
+      const phone = `0812${uniqueSuffix()}`;
+
+      await request(app.getHttpServer())
+        .post('/api/v1/register')
+        .send({
+          first_name: 'Rina',
+          last_name: 'Marlina',
+          phone_number: phone,
+          address: 'Jl. Refresh No. 1',
+          pin: '246810',
+        })
+        .expect(201);
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/v1/login')
+        .send({ phone_number: phone, pin: '246810' })
+        .expect(200);
+
+      const { refresh_token } = loginRes.body.result as {
+        access_token: string;
+        refresh_token: string;
+      };
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/refresh-token')
+        .send({ refresh_token })
+        .expect(200);
+
+      expect(res.body.status).toBe('SUCCESS');
+      expect(typeof res.body.result.access_token).toBe('string');
+      expect(res.body.result.access_token.length).toBeGreaterThan(0);
+      expect(res.body.result.expires_in).toBe(900);
+      // No new refresh_token is minted (token rotation is out of MVP scope)
+      expect(res.body.result.refresh_token).toBeUndefined();
+    });
+
+    it('E2E-REFRESH-02a: revoked refresh_token → 401 INVALID_REFRESH_TOKEN', async () => {
+      const phone = `0812${uniqueSuffix()}`;
+
+      await request(app.getHttpServer())
+        .post('/api/v1/register')
+        .send({
+          first_name: 'Doni',
+          last_name: 'Saputra',
+          phone_number: phone,
+          address: 'Jl. Revoked No. 1',
+          pin: '112233',
+        })
+        .expect(201);
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/v1/login')
+        .send({ phone_number: phone, pin: '112233' })
+        .expect(200);
+
+      const { refresh_token } = loginRes.body.result as { refresh_token: string };
+
+      // Revoke every refresh token for this user directly at the DB level
+      // (no logout endpoint exists yet to do this through the API).
+      const user = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+      await prisma.refreshToken.updateMany({
+        where: { userId: user!.id },
+        data: { revoked: true },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/refresh-token')
+        .send({ refresh_token })
+        .expect(401);
+
+      expect(res.body.status).toBe('FAILED');
+      expect(res.body.error.code).toBe('INVALID_REFRESH_TOKEN');
+      expect(res.body.error.message).toBe('Refresh token is invalid or expired');
+    });
+
+    it('E2E-REFRESH-02b: expired refresh_token → 401 INVALID_REFRESH_TOKEN', async () => {
+      const jwtService = app.get(JwtService);
+      const expiredToken = jwtService.sign(
+        { sub: 'nonexistent-user-id' },
+        { secret: process.env.JWT_SECRET, expiresIn: '0s' },
+      );
+
+      // Give the token a moment to cross its own expiry boundary
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/refresh-token')
+        .send({ refresh_token: expiredToken })
+        .expect(401);
+
+      expect(res.body.status).toBe('FAILED');
+      expect(res.body.error.code).toBe('INVALID_REFRESH_TOKEN');
+    });
+
+    it('malformed refresh_token → 401 INVALID_REFRESH_TOKEN', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/refresh-token')
+        .send({ refresh_token: 'not-a-real-jwt' })
+        .expect(401);
+
+      expect(res.body.error.code).toBe('INVALID_REFRESH_TOKEN');
+    });
   });
 });
