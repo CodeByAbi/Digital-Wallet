@@ -166,6 +166,7 @@ Base URL: `/api/v1`
 | **POST** | `/refresh-token` | Obtain new Access Token using Refresh Token | No | None |
 | **GET** | `/profile` | Retrieve user profile & current balance | **Yes** | None |
 | **PATCH** | `/profile` | Update profile (first name, last name, address) | **Yes** | None |
+| | | ↳ `phone_number`/`pin` in the body → whole request rejected with `400 VALIDATION_ERROR` (not silently dropped). Empty body / no valid field → also rejected. Deviation from the original draft spec — see ROADMAP.md item 4. | | |
 | **POST** | `/topup` | Top up wallet balance (Min Rp10.000) | **Yes** | None |
 | **POST** | `/pay` | Deduct balance for dynamic payments | **Yes** | `Idempotency-Key: <UUID>` *(Required)* |
 | **POST** | `/transfer` | Init async P2P transfer by recipient phone number | **Yes** | `Idempotency-Key: <UUID>` *(Required)* |
