@@ -1,23 +1,36 @@
-import { HttpStatus } from '@nestjs/common';
+import { ExecutionContext, HttpStatus } from '@nestjs/common';
 import { AppException } from '../../common/exceptions/app.exception';
-import { RejectImmutableProfileFieldsPipe } from './reject-immutable-profile-fields.pipe';
+import { RejectImmutableProfileFieldsGuard } from './reject-immutable-profile-fields.guard';
 
-describe('RejectImmutableProfileFieldsPipe', () => {
-  let pipe: RejectImmutableProfileFieldsPipe;
+const buildContext = (body: unknown): ExecutionContext =>
+  ({
+    switchToHttp: () => ({
+      getRequest: () => ({ body }),
+    }),
+  }) as unknown as ExecutionContext;
+
+describe('RejectImmutableProfileFieldsGuard', () => {
+  let guard: RejectImmutableProfileFieldsGuard;
 
   beforeEach(() => {
-    pipe = new RejectImmutableProfileFieldsPipe();
+    guard = new RejectImmutableProfileFieldsGuard();
   });
 
-  it('passes through a body with only allowed fields', () => {
-    const body = { first_name: 'Guntur', address: 'Jl. Baru No. 2' };
-    expect(pipe.transform(body)).toEqual(body);
+  it('allows a body with only allowed fields', () => {
+    const context = buildContext({
+      first_name: 'Guntur',
+      address: 'Jl. Baru No. 2',
+    });
+
+    expect(guard.canActivate(context)).toBe(true);
   });
 
   it('rejects when phone_number is present, even as an empty string', () => {
+    const context = buildContext({ first_name: 'Guntur', phone_number: '' });
+
     let caught: AppException | undefined;
     try {
-      pipe.transform({ first_name: 'Guntur', phone_number: '' });
+      guard.canActivate(context);
     } catch (e) {
       caught = e as AppException;
     }
@@ -29,9 +42,11 @@ describe('RejectImmutableProfileFieldsPipe', () => {
   });
 
   it('rejects when pin is present, even as null', () => {
+    const context = buildContext({ first_name: 'Guntur', pin: null });
+
     let caught: AppException | undefined;
     try {
-      pipe.transform({ first_name: 'Guntur', pin: null });
+      guard.canActivate(context);
     } catch (e) {
       caught = e as AppException;
     }
@@ -41,10 +56,15 @@ describe('RejectImmutableProfileFieldsPipe', () => {
     expect(caught?.errorMessage).toContain('pin');
   });
 
-  it('rejects the whole request (does not report only one field) when both are present', () => {
+  it('mentions both fields when both are present (does not report only one)', () => {
+    const context = buildContext({
+      phone_number: '08111234567',
+      pin: '123456',
+    });
+
     let caught: AppException | undefined;
     try {
-      pipe.transform({ phone_number: '08111234567', pin: '123456' });
+      guard.canActivate(context);
     } catch (e) {
       caught = e as AppException;
     }
@@ -54,9 +74,11 @@ describe('RejectImmutableProfileFieldsPipe', () => {
   });
 
   it('rejects an empty body', () => {
+    const context = buildContext({});
+
     let caught: AppException | undefined;
     try {
-      pipe.transform({});
+      guard.canActivate(context);
     } catch (e) {
       caught = e as AppException;
     }
@@ -67,6 +89,7 @@ describe('RejectImmutableProfileFieldsPipe', () => {
   });
 
   it('rejects a null/undefined body the same as empty', () => {
-    expect(() => pipe.transform(undefined)).toThrow(AppException);
+    const context = buildContext(undefined);
+    expect(() => guard.canActivate(context)).toThrow(AppException);
   });
 });

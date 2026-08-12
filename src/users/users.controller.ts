@@ -1,7 +1,7 @@
 import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { RejectImmutableProfileFieldsPipe } from './pipes/reject-immutable-profile-fields.pipe';
+import { RejectImmutableProfileFieldsGuard } from './guards/reject-immutable-profile-fields.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUserId } from '../auth/decorators/current-user-id.decorator';
 
@@ -20,8 +20,9 @@ export class UsersController {
   }
 
   @Patch()
+  @UseGuards(RejectImmutableProfileFieldsGuard)
   async updateProfile(
-    @Body(RejectImmutableProfileFieldsPipe) dto: UpdateProfileDto,
+    @Body() dto: UpdateProfileDto,
     @CurrentUserId() userId: string,
   ) {
     return this.usersService.updateProfile(userId, dto);
