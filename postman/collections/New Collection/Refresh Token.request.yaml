@@ -4,5 +4,9 @@ url: "{{base_url}}/api/v1/refresh-token"
 method: POST
 body:
   type: json
-  content: '{ "refresh_token": "token-ngaco-asal-invalid" }'
+  content: "{\r
+
+    \    \"refresh_token\": \"{{refresh_token}}\"\r
+
+    }"
 order: 4026915470922146
