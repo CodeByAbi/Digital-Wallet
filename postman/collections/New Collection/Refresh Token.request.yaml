@@ -1,0 +1,8 @@
+$kind: http-request
+name: Refresh Token
+url: "{{base_url}}/api/v1/refresh-token"
+method: POST
+body:
+  type: json
+  content: '{ "refresh_token": "token-ngaco-asal-invalid" }'
+order: 4026915470922146

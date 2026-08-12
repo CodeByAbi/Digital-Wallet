@@ -1,0 +1,24 @@
+$kind: http-request
+name: Register
+url: "{{base_url}}/api/v1/register"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"first_name\": \"Test\",\r
+
+    \  \"last_name\": \"User2\",\r
+
+    \  \"phone_number\": \"08112555055\",\r
+
+    \  \"address\": \"Jl. Testing No. 2\",\r
+
+    \  \"pin\": \"654321\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: ""
+    language: text/javascript
+order: 425581220403817

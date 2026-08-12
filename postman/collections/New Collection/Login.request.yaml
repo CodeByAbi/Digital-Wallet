@@ -1,0 +1,26 @@
+$kind: http-request
+name: Login
+url: "{{base_url}}/api/v1/login"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"phone_number\": \"08112555055\",\r
+
+    \  \"pin\": \"654321\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "console.log(\"Response body:\", pm.response.json());\r
+
+      const body = pm.response.json();\r
+
+      pm.environment.set(\"access_token\", body.result.access_token);\r
+
+      pm.environment.set(\"refresh_token\", body.result.refresh_token);\r
+
+      console.log(\"Token saved:\", pm.environment.get(\"refresh_token\"));"
+    language: text/javascript
+order: 1786539369176
