@@ -199,7 +199,7 @@ Base URL: `/api/v1`
 { "first_name": "Guntur", "last_name": "S.", "address": "Jl. Baru No. 2" }
 ```
 
-**Validasi:** sama seperti register untuk field yang sama. Kalau request menyertakan `phone_number` atau `pin`, field itu **diabaikan** (bukan diproses), bukan error — supaya client yang salah kirim payload lengkap tidak gagal total.
+**Validasi:** sama seperti register untuk field yang sama. Kalau request menyertakan `phone_number` atau `pin`, seluruh request **direject** dengan validation error (400) — bukan diabaikan diam-diam, supaya client sadar sebagian payload-nya invalid. Body kosong / tidak ada field valid juga direject, bukan no-op.
 
 **Response SUCCESS (200):** profil terbaru, format sama seperti `GET /profile`.
 
