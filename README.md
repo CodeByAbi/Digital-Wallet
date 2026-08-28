@@ -173,6 +173,77 @@ Base URL: `/api/v1`
 | **GET** | `/transactions`| Get paginated, unified transaction ledger | **Yes** | Query: `page` (default 1), `limit` (default 20) |
 | **GET** | `/health` | Verify health of DB, RabbitMQ, and API | No | None |
 
+### 📝 Detailed Payload Examples for Top-up & Payment
+
+#### 1. Top-up Balance (`POST /topup`)
+*   **Request Body**:
+    ```json
+    {
+      "amount": 50000
+    }
+    ```
+    *Note: `amount` must be an integer between `10000` (Rp10.000) and `50000000` (Rp50.000.000).*
+*   **Success Response** (HTTP status `201 Created`):
+    ```json
+    {
+      "status": "SUCCESS",
+      "result": {
+        "top_up_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+        "amount_top_up": 50000,
+        "balance_before": 100000,
+        "balance_after": 150000,
+        "created_date": "2026-08-29T01:42:07.000Z"
+      }
+    }
+    ```
+
+#### 2. Payment (`POST /pay`)
+*   **Headers**:
+    *   `Idempotency-Key`: `<UUID>` *(Required, e.g. `d3b07384-d113-49c5-a5b6-728b7d5a5cf2`)*
+*   **Request Body**:
+    ```json
+    {
+      "amount": 25000,
+      "remarks": "Lunch payment"
+    }
+    ```
+    *Note: `amount` must be an integer between `1` and `50000000`. `remarks` is optional (max 100 characters).*
+*   **Success Response** (HTTP status `201 Created`):
+    ```json
+    {
+      "status": "SUCCESS",
+      "result": {
+        "payment_id": "c3f8e58a-3bc1-4048-9da7-25e2e8312015",
+        "amount": 25000,
+        "remarks": "Lunch payment",
+        "balance_before": 150000,
+        "balance_after": 125000,
+        "created_date": "2026-08-29T01:42:07.000Z"
+      }
+    }
+    ```
+*   **Error Responses**:
+    *   **Insufficient Balance** (HTTP status `422 Unprocessable Entity`):
+        ```json
+        {
+          "status": "FAILED",
+          "error": {
+            "code": "INSUFFICIENT_BALANCE",
+            "message": "Balance is not enough"
+          }
+        }
+        ```
+    *   **Duplicate Idempotency Key with Different Payload** (HTTP status `409 Conflict`):
+        ```json
+        {
+          "status": "FAILED",
+          "error": {
+            "code": "DUPLICATE_IDEMPOTENCY_KEY",
+            "message": "Idempotency key already used with a different payload"
+          }
+        }
+        ```
+
 ---
 
 ## 🧪 Testing
