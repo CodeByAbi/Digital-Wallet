@@ -43,7 +43,9 @@ describe('Auth E2E', () => {
 
   afterAll(async () => {
     // Clean up test data created during this run
-    await prisma.refreshToken.deleteMany({});
+    await prisma.refreshToken.deleteMany({
+      where: { user: { phoneNumber: { startsWith: '0812' } } },
+    });
     await prisma.user.deleteMany({
       where: { phoneNumber: { startsWith: '0812' } },
     });
