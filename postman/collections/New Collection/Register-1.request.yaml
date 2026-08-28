@@ -1,6 +1,6 @@
 $kind: http-request
 name: Register
-url: "{{base_url}}/api/v1/register"
+url: "\thttp://localhost:3001/api/v1/register"
 method: POST
 body:
   type: json
@@ -17,8 +17,4 @@ body:
     \  \"pin\": \"654321\"\r
 
     }"
-scripts:
-  - type: afterResponse
-    code: ""
-    language: text/javascript
-order: 425581220403817
+order: 4299119092006844
