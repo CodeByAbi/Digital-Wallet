@@ -25,6 +25,6 @@ async function bootstrap() {
   // Global response interceptor — wraps 2xx in SRS 1.3 SUCCESS envelope
   app.useGlobalInterceptors(new ResponseInterceptor());
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3001);
 }
 bootstrap();

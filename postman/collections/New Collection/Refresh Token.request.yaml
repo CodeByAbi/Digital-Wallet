@@ -1,6 +1,6 @@
 $kind: http-request
 name: Refresh Token
-url: "{{base_url}}/api/v1/refresh-token"
+url: http://localhost:3001/api/v1/refresh-token
 method: POST
 body:
   type: json

@@ -1,0 +1,16 @@
+$kind: http-request
+name: Profile
+url: http://localhost:3001/api/v1/profile
+method: GET
+body:
+  type: json
+  content: "{\r
+
+    \  \"first_name\": \"Abira\",\r
+
+    \  \"last_name\": \"Wisnunggal\",\r
+
+    \  \"address\": \"Jl. Kebon Sirih No. 1\"\r
+
+    }"
+order: 4313474245692424
