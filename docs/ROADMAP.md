@@ -49,14 +49,14 @@ Item yang masih outstanding dari sesi TDD kemarin (config backoff jadi env-confi
 - [x] Unit + integration test paralel (UT-WALLET-01/02, IT-DB-01/02, E2E-TOPUP, E2E-PAY)
 
 ## Phase 6 — Transfer & Background Worker
-- [ ] Register `BullModule` + queue `transfer-queue` (SYSTEM_DESIGN 6.2)
-- [ ] `POST /transfer` — reserve-and-async: debit sender + insert `PENDING` dalam transaksi, enqueue job setelah commit
-- [ ] Worker/processor — idempotent (cek `status !== PENDING` sebelum proses), kredit recipient
-- [ ] Refund handler saat job gagal max retry
-- [ ] Reconciliation sweep (`@Cron`, tiap 5 menit, tangkap `PENDING` yang orphan)
-- [ ] Bull Board dashboard, **wajib basic auth** (SYSTEM_DESIGN 6.7 — jangan skip ini)
-- [ ] **Buat `attempts`/`backoff` configurable lewat env var** — supaya test env bisa pakai delay milidetik, bukan production 2s–32s (item outstanding dari TDD Q-03)
-- [ ] Unit + integration test paralel (Q-01 s/d Q-04, E2E-TRF-01 s/d 04)
+- [x] Register `BullModule` + queue `transfer-queue` (SYSTEM_DESIGN 6.2)
+- [x] `POST /transfer` — reserve-and-async: debit sender + insert `PENDING` dalam transaksi, enqueue job setelah commit
+- [x] Worker/processor — idempotent (cek `status !== PENDING` sebelum proses), kredit recipient
+- [x] Refund handler saat job gagal max retry
+- [x] Reconciliation sweep (`@Cron`, tiap 5 menit, tangkap `PENDING` yang orphan)
+- [x] Bull Board dashboard, **wajib basic auth** (SYSTEM_DESIGN 6.7 — jangan skip ini)
+- [x] **Buat `attempts`/`backoff` configurable lewat env var** — supaya test env bisa pakai delay milidetik, bukan production 2s–32s (item outstanding dari TDD Q-03)
+- [x] Unit + integration test paralel (Q-01 s/d Q-04, E2E-TRF-01 s/d 04)
 
 ## Phase 7 — Transaction Report
 - [ ] `GET /transactions` — pagination, urut terbaru dulu
