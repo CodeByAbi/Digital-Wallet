@@ -43,10 +43,10 @@ Item yang masih outstanding dari sesi TDD kemarin (config backoff jadi env-confi
 - [ ] Unit + E2E test paralel (E2E-PROFILE-01 s/d 03)
 
 ## Phase 5 — Top Up & Payment
-- [ ] `POST /topup` — validasi minimum, row lock saat update balance
-- [ ] `POST /pay` — validasi saldo cukup, `Idempotency-Key` handling
-- [ ] Insert ke tabel ledger `transactions` bersamaan dalam satu DB transaction
-- [ ] Unit + integration test paralel (UT-WALLET-01/02, IT-DB-01/02, E2E-TOPUP, E2E-PAY)
+- [x] `POST /topup` — validasi minimum, row lock saat update balance
+- [x] `POST /pay` — validasi saldo cukup, `Idempotency-Key` handling
+- [x] Insert ke tabel ledger `transactions` bersamaan dalam satu DB transaction
+- [x] Unit + integration test paralel (UT-WALLET-01/02, IT-DB-01/02, E2E-TOPUP, E2E-PAY)
 
 ## Phase 6 — Transfer & Background Worker
 - [ ] Register `BullModule` + queue `transfer-queue` (SYSTEM_DESIGN 6.2)
