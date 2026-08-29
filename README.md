@@ -4,82 +4,82 @@
 [![NestJS](https://img.shields.io/badge/NestJS-v11.0-E0234E?logo=nestjs&logoColor=white&style=flat-square)](https://nestjs.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v16-4169E1?logo=postgresql&logoColor=white&style=flat-square)](https://www.postgresql.org/)
 [![Prisma ORM](https://img.shields.io/badge/Prisma_ORM-v6.0-2D3748?logo=prisma&logoColor=white&style=flat-square)](https://www.prisma.io/)
-[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-v3.13-FF6600?logo=rabbitmq&logoColor=white&style=flat-square)](https://www.rabbitmq.com/)
+[![Redis](https://img.shields.io/badge/Redis-v7-DC382D?logo=redis&logoColor=white&style=flat-square)](https://redis.io/)
+[![BullMQ](https://img.shields.io/badge/BullMQ-Queue-red?style=flat-square)](https://docs.bullmq.io/)
 [![Jest](https://img.shields.io/badge/Jest-Testing-C21325?logo=jest&logoColor=white&style=flat-square)](https://jestjs.io/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-**PayFlow** is a highly secure, reliable, and scalable E-Wallet REST API built with **NestJS**, **PostgreSQL**, and **Prisma ORM**. To ensure high throughput and prevent database deadlocks, the core P2P transfer feature employs a **reserve-and-async architecture** powered by **RabbitMQ** to process transaction queue messages in a dedicated background worker process.
+**PayFlow** is a digital wallet REST API built with **NestJS**, **PostgreSQL**, and **Prisma ORM**. To avoid dual-account-lock deadlocks and keep the API responsive, P2P transfers use a **reserve-and-async architecture**: the request debits the sender and commits, then a **Redis + BullMQ** job asynchronously credits the recipient in a background worker process.
+
+> Private take-home assessment project — not licensed for reuse (`package.json` marks it `UNLICENSED`).
 
 ---
 
 ## 🚀 Key Features
 
-*   **Secure Authentication**: Register and login using phone numbers and 6-digit PINs (hashed with bcrypt). Supports stateless JWT Access Tokens (15-minute expiry) and stateful, revocable JWT Refresh Tokens (7-day expiry) stored in the database.
-*   **Account Safety**: Automatic lockout mechanism after 5 consecutive failed login attempts, freezing the account temporarily for 15 minutes.
-*   **Profile Management**: Retrieve and update profile information while keeping phone numbers and PIN hashes read-only.
-*   **Balance Top-Up**: Audited balance mutations with precise tracking of `balance_before` and `balance_after`. Enforces a minimum top-up of Rp10.000 and maximum of Rp50.000.000.
-*   **Instant Payments**: Fast debit operations for purchasing items or paying bills, protected by client-supplied idempotency keys.
-*   **Reserve-and-Async P2P Transfers**: 
-    *   **Deadlock Prevention**: Debits the sender's balance and records a `PENDING` transfer in the database inside one transaction, then publishes a job to RabbitMQ.
-    *   **Asynchronous Processing**: A separate background worker consumes messages from the queue, credits the recipient's balance, and updates the transfer status to `SUCCESS` in a separate transaction.
-    *   **Resiliency & Automatic Refund**: Permanently failed transfer jobs (e.g., after maximum retries) trigger an automatic refund to the sender and flip the status to `FAILED`.
-*   **Double-Mutation Protection**: Enforces mandatory `Idempotency-Key` headers on `/pay` and `/transfer` endpoints to guarantee safety against network retries or duplicate client submissions.
-*   **Unified Ledger History**: A single, optimized `transactions` table acting as a unified ledger of top-ups, payments, and P2P transfers. This avoids expensive `UNION ALL` queries during paginated history lookups.
+*   **Secure Authentication**: Register and login using phone numbers and 6-digit PINs (hashed with bcrypt, cost 10). Stateless JWT Access Tokens (15-minute expiry, payload carries only `user_id`) plus stateful, revocable JWT Refresh Tokens (7-day expiry, hash stored in `refresh_tokens` so a lost device can be invalidated).
+*   **Account Safety**: Automatic lockout after 5 consecutive failed login attempts (`ACCOUNT_LOCKED`, 429, 15-minute cooldown).
+*   **Profile Management**: Retrieve and update profile info; `phone_number`/`pin` are immutable via `PUT /profile` — inserting either rejects the **whole** request (400), it is never silently dropped.
+*   **Balance Top-Up**: Audited balance mutations with `balance_before`/`balance_after` tracking. Enforces a minimum top-up of Rp10.000 and maximum of Rp50.000.000.
+*   **Instant Payments**: Debit operations for purchases/bills, protected by a required `Idempotency-Key` header.
+*   **Reserve-and-Async P2P Transfers**:
+    *   **Deadlock Prevention**: Debits the sender and inserts a `PENDING` transfer in one DB transaction, commits, *then* enqueues a BullMQ job — debit and credit deliberately happen in separate transactions.
+    *   **Asynchronous Processing**: A dedicated worker process consumes the job, credits the recipient, and flips the transfer to `SUCCESS` — idempotently (`status !== PENDING` guard prevents double-credit on retry).
+    *   **Resiliency**: Permanently failed jobs (max retries exhausted) auto-refund the sender and flip the transfer to `FAILED`. A `@Cron` reconciliation sweep (every 5 minutes) re-enqueues any `PENDING` transfer older than 2 minutes, covering the gap if Redis dies between commit and enqueue.
+    *   **Bull Board dashboard** at `/admin/queues` (outside `/api/v1`) for inspecting queue/job state — protected by HTTP Basic Auth (`BULL_BOARD_USER`/`BULL_BOARD_PASSWORD`), since job payloads include transfer details.
+*   **Double-Mutation Protection**: Mandatory `Idempotency-Key` header on `/pay` and `/transfer`. Same key + same payload replays the original result; same key + different payload → `409 DUPLICATE_IDEMPOTENCY_KEY`.
+*   **Unified Ledger History**: A single `transactions` table is the ledger for top-ups, payments, and transfers (`transaction_type` discriminator), so `GET /transactions` stays one indexed, paginated query instead of a `UNION ALL` across three tables.
 
 ---
 
 ## 🛠️ Prerequisites
 
-Make sure you have the following installed on your machine:
-
 *   **Node.js** (v18.x or higher)
 *   **npm** (v9.x or higher) or Yarn / pnpm
-*   **Docker & Docker Compose** (for running PostgreSQL and RabbitMQ locally)
-*   **Git** (for version control)
+*   **Docker & Docker Compose** (for running PostgreSQL and Redis locally)
+*   **Git**
+*   **Postman** (optional, for the collection under [`postman/`](postman/) — see [Manual Testing with Postman](#-manual-testing-with-postman))
 
 ---
 
 ## ⚙️ Environment Variables
 
-Create a `.env` file in the root directory. You can copy the template from `.env.example`:
+Create a `.env` file in the root directory by copying the template:
 
 ```bash
 cp .env.example .env
 ```
 
-Define the following environment variables in your `.env` file:
+`.env.example` defines:
 
 ```env
-# Application Configuration
-PORT=3000
-NODE_ENV=development
+DATABASE_URL=postgresql://wallet:wallet@localhost:5432/wallet_db
+REDIS_HOST=localhost
+REDIS_PORT=6379
+JWT_SECRET=your_jwt_secret_key_here
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+PORT=3001
 
-# Database Connection (PostgreSQL)
-DATABASE_URL="postgresql://wallet:wallet@localhost:5432/wallet_db?schema=public"
+# Bull Board dashboard (/admin/queues) — basic auth, SYSTEM_DESIGN 6.7
+BULL_BOARD_USER=admin
+BULL_BOARD_PASSWORD=changeme
 
-# RabbitMQ Configuration
-RABBITMQ_URL="amqp://guest:guest@localhost:5672"
-
-# Security & JWT Configuration
-JWT_SECRET="super-secure-jwt-secret-key-change-in-production"
-JWT_ACCESS_EXPIRY="15m"
-JWT_REFRESH_EXPIRY="7d"
-
-# Retry Backoff Settings (for Transfer Worker Queue)
-# Configurable in milliseconds to support fast execution during integration testing
-QUEUE_RETRY_BACKOFF_MS=2000
+# Transfer job retry policy — override with millisecond delays in test envs
+# (TDD Q-03) so BullMQ retries don't stall CI on production's 2s-32s backoff.
+TRANSFER_JOB_ATTEMPTS=5
+TRANSFER_JOB_BACKOFF_MS=2000
 ```
+
+Change `JWT_SECRET` and `BULL_BOARD_PASSWORD` before deploying anywhere real. `docker-compose.test.yml` runs its own Postgres/Redis on ports `5433`/`6380` (see `.env.test`), independent of the dev containers above.
 
 ---
 
 ## 📥 Installation & Setup
 
-Follow these steps to set up the project locally:
-
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/digital-wallet-api.git
-cd digital-wallet-api
+git clone https://github.com/CodeByAbi/Digital-Wallet.git
+cd Digital-Wallet
 ```
 
 ### 2. Install Dependencies
@@ -87,201 +87,288 @@ cd digital-wallet-api
 npm install
 ```
 
-### 3. Spin up Infrastructure (Database & Message Broker)
-Start the PostgreSQL database and RabbitMQ container in the background using Docker Compose:
+### 3. Spin up Infrastructure (Postgres & Redis)
 ```bash
 docker-compose up -d
 ```
-*   **PostgreSQL** will be available at `localhost:5432`
-*   **RabbitMQ** will be available at `localhost:5672` (Management Dashboard at `localhost:15672` with login `guest` / `guest`)
+*   **PostgreSQL** available at `localhost:5432` (user/pass/db: `wallet`/`wallet`/`wallet_db`)
+*   **Redis** available at `localhost:6379` (append-only persistence enabled — BullMQ's backing store, nothing else)
 
 ### 4. Run Database Migrations
-Apply the Prisma schema structure to your PostgreSQL database:
+Applies the committed Prisma migrations (`prisma/migrations/`) to your database:
 ```bash
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 ```
+(Use `npx prisma migrate dev` instead only if you're evolving `schema.prisma` yourself and need a new migration generated.)
 
 ### 5. Seed the Database (Optional)
-Populate your database with mock users and wallet balances for testing:
+Creates two demo users — Alice (`081200000001`) with a Rp1.000.000 balance and Bob (`081200000002`) with Rp500.000 — both with PIN `123456`:
 ```bash
-npm run prisma db seed
+npx prisma db seed
 ```
 
 ---
 
 ## 🏃 Running the Application
 
-The system is architected as two decoupled processes running on top of a single database. This allows the API server and queue consumer to scale independently.
+The API server and the transfer worker are two separate processes sharing one database — this lets them scale independently.
 
-### A. Run in Development Mode (Hot Reload)
+### A. Development Mode (Hot Reload)
 
-In separate terminal windows, run the following:
+In separate terminals:
 
-#### 1. Main API Server
-Exposes HTTP endpoints for client registration, authentication, deposits, and payments.
 ```bash
-npm run start:api:dev
-```
-The API server starts on `http://localhost:3000`.
-
-#### 2. Background Worker
-Consumes RabbitMQ messages to complete P2P transfers asynchronously.
-```bash
-npm run start:worker:dev
+npm run start:api:dev     # API server → http://localhost:3001
+npm run start:worker:dev  # BullMQ consumer — processes transfer jobs
 ```
 
----
+### B. Production Mode
 
-### B. Run in Production Mode
-
-#### 1. Build the project:
 ```bash
 npm run build
-```
-
-#### 2. Start the API Server:
-```bash
-npm run start:prod
-```
-
-#### 3. Start the Background Worker:
-```bash
-node dist/worker.js
+npm run start:prod        # API server (dist/main.js)
+node dist/worker.js        # Background worker (dist/worker.js)
 ```
 
 ---
 
 ## 📍 API Endpoints Summary
 
-All request and response bodies follow a standard envelope wrapper:
+All responses share one envelope:
 *   **Success**: `{"status": "SUCCESS", "result": { ... }}`
-*   **Failure**: `{"status": "FAILED", "error": { "code": "ERROR_CODE", "message": "Descriptive message" }}`
+*   **Failure**: `{"status": "FAILED", "error": { "code": "ERROR_CODE", "message": "..." }}`
 
 Base URL: `/api/v1`
 
-| Method | Endpoint | Description | Auth Required | Custom Headers / Query Params |
+| Method | Endpoint | Description | Auth | Notes |
 | :--- | :--- | :--- | :---: | :--- |
-| **POST** | `/register` | Register a new user wallet | No | None |
-| **POST** | `/login` | Authenticate user, receive JWTs | No | None |
-| **POST** | `/refresh-token` | Obtain new Access Token using Refresh Token | No | None |
-| **GET** | `/profile` | Retrieve user profile & current balance | **Yes** | None |
-| **PATCH** | `/profile` | Update profile (first name, last name, address) | **Yes** | None |
-| | | ↳ `phone_number`/`pin` in the body → whole request rejected with `400 VALIDATION_ERROR` (not silently dropped). Empty body / no valid field → also rejected. Deviation from the original draft spec — see ROADMAP.md item 4. | | |
-| **POST** | `/topup` | Top up wallet balance (Min Rp10.000) | **Yes** | None |
-| **POST** | `/pay` | Deduct balance for dynamic payments | **Yes** | `Idempotency-Key: <UUID>` *(Required)* |
-| **POST** | `/transfer` | Init async P2P transfer by recipient phone number | **Yes** | `Idempotency-Key: <UUID>` *(Required)* |
-| **GET** | `/transactions`| Get paginated, unified transaction ledger | **Yes** | Query: `page` (default 1), `limit` (default 20) |
-| **GET** | `/health` | Verify health of DB, RabbitMQ, and API | No | None |
+| **POST** | `/register` | Register a new user wallet | No | |
+| **POST** | `/login` | Authenticate, receive access + refresh JWTs | No | 5 failed attempts → `429 ACCOUNT_LOCKED` (15 min) |
+| **POST** | `/refresh-token` | Exchange refresh token for a new access token | No | |
+| **GET** | `/profile` | Retrieve profile & current balance | **Yes** | |
+| **PUT** | `/profile` | Update `first_name`/`last_name`/`address` | **Yes** | `phone_number`/`pin` in body, or an empty/all-invalid body → `400 VALIDATION_ERROR` (whole request rejected) |
+| **POST** | `/topup` | Top up wallet balance | **Yes** | Amount: Rp10.000–Rp50.000.000 |
+| **POST** | `/pay` | Debit balance for a payment | **Yes** | `Idempotency-Key: <UUID>` *(required)* |
+| **POST** | `/transfer` | P2P transfer by recipient phone number | **Yes** | `Idempotency-Key: <UUID>` *(required)*; response reflects the sender's debit, recipient credit is async |
+| **GET** | `/transactions` | Paginated, unified transaction ledger | **Yes** | Query: `page` (default 1), `limit` (default 20, max 100) |
 
-### 📝 Detailed Payload Examples for Top-up & Payment
+Additionally, `/admin/queues` (outside `/api/v1`, HTTP Basic Auth) serves the Bull Board dashboard for the transfer queue — it's an HTML admin UI, not a JSON API endpoint.
 
-#### 1. Top-up Balance (`POST /topup`)
-*   **Request Body**:
-    ```json
-    {
-      "amount": 50000
-    }
-    ```
-    *Note: `amount` must be an integer between `10000` (Rp10.000) and `50000000` (Rp50.000.000).*
-*   **Success Response** (HTTP status `201 Created`):
-    ```json
-    {
-      "status": "SUCCESS",
-      "result": {
-        "top_up_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-        "amount_top_up": 50000,
-        "balance_before": 100000,
-        "balance_after": 150000,
-        "created_date": "2026-08-29T01:42:07.000Z"
+### 📝 API Usage Examples
+
+#### 1. Register (`POST /register`)
+```json
+{
+  "first_name": "Alice",
+  "last_name": "Wonder",
+  "phone_number": "081200000099",
+  "address": "Jl. Contoh No. 1, Jakarta",
+  "pin": "123456"
+}
+```
+Success (`201`):
+```json
+{
+  "status": "SUCCESS",
+  "result": {
+    "user_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "first_name": "Alice",
+    "last_name": "Wonder",
+    "phone_number": "081200000099",
+    "address": "Jl. Contoh No. 1, Jakarta",
+    "created_date": "2026-08-30T00:00:00.000Z"
+  }
+}
+```
+Same `phone_number` registered twice → `409 PHONE_NUMBER_ALREADY_REGISTERED`.
+
+#### 2. Login (`POST /login`)
+```json
+{ "phone_number": "081200000099", "pin": "123456" }
+```
+Success (`200`):
+```json
+{
+  "status": "SUCCESS",
+  "result": {
+    "access_token": "eyJhbGciOi...",
+    "refresh_token": "eyJhbGciOi...",
+    "expires_in": 900
+  }
+}
+```
+Wrong PIN → `401 INVALID_CREDENTIALS`; 5th consecutive failure → `429 ACCOUNT_LOCKED`.
+
+#### 3. Refresh Token (`POST /refresh-token`)
+```json
+{ "refresh_token": "<refresh_token from login>" }
+```
+Success (`200`): `{ "status": "SUCCESS", "result": { "access_token": "...", "expires_in": 900 } }`. Invalid/expired/revoked token → `401 INVALID_REFRESH_TOKEN`.
+
+#### 4. Get Profile (`GET /profile`) — `Authorization: Bearer <access_token>`
+```json
+{
+  "status": "SUCCESS",
+  "result": {
+    "user_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "first_name": "Alice",
+    "last_name": "Wonder",
+    "phone_number": "081200000099",
+    "address": "Jl. Contoh No. 1, Jakarta",
+    "balance": 1000000,
+    "updated_date": "2026-08-30T00:00:00.000Z"
+  }
+}
+```
+
+#### 5. Update Profile (`PUT /profile`)
+```json
+{ "first_name": "Alice", "address": "Jl. Baru No. 2" }
+```
+Success (`200`): same shape as `GET /profile` with the updated fields. Sending `phone_number` or `pin` (even `null`), or an empty body → `400 VALIDATION_ERROR`, nothing is partially applied.
+
+#### 6. Top-up Balance (`POST /topup`)
+```json
+{ "amount": 50000 }
+```
+Success (`201`):
+```json
+{
+  "status": "SUCCESS",
+  "result": {
+    "top_up_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "amount_top_up": 50000,
+    "balance_before": 100000,
+    "balance_after": 150000,
+    "created_date": "2026-08-29T01:42:07.000Z"
+  }
+}
+```
+
+#### 7. Payment (`POST /pay`) — `Idempotency-Key: <UUID>` *(required)*
+```json
+{ "amount": 25000, "remarks": "Lunch payment" }
+```
+Success (`201`):
+```json
+{
+  "status": "SUCCESS",
+  "result": {
+    "payment_id": "c3f8e58a-3bc1-4048-9da7-25e2e8312015",
+    "amount": 25000,
+    "remarks": "Lunch payment",
+    "balance_before": 150000,
+    "balance_after": 125000,
+    "created_date": "2026-08-29T01:42:07.000Z"
+  }
+}
+```
+Not enough balance → `422 INSUFFICIENT_BALANCE`. Same key replayed with a different payload → `409 DUPLICATE_IDEMPOTENCY_KEY`; same key + same payload → returns the original result.
+
+#### 8. Transfer (`POST /transfer`) — `Idempotency-Key: <UUID>` *(required)*
+```json
+{ "target_phone_number": "081200000002", "amount": 30000, "remarks": "Hadiah Ultah" }
+```
+Success (`201`):
+```json
+{
+  "status": "SUCCESS",
+  "result": {
+    "transfer_id": "a7d39cf6-...",
+    "status": "SUCCESS",
+    "amount": 30000,
+    "remarks": "Hadiah Ultah",
+    "balance_before": 400000,
+    "balance_after": 370000,
+    "created_date": "2026-08-11T22:23:20Z"
+  }
+}
+```
+`status: "SUCCESS"` means **the sender's debit is final** — the recipient's credit is still processed asynchronously by the worker. Failure cases: `422 INSUFFICIENT_BALANCE`, `422 SELF_TRANSFER_NOT_ALLOWED`, `404 RECIPIENT_NOT_FOUND`, `409 DUPLICATE_IDEMPOTENCY_KEY`.
+
+#### 9. Transaction History (`GET /transactions?page=1&limit=20`)
+```json
+{
+  "status": "SUCCESS",
+  "result": {
+    "data": [
+      {
+        "transaction_id": "a7d39cf6-...",
+        "transaction_type": "TRANSFER",
+        "direction": "DEBIT",
+        "status": "SUCCESS",
+        "amount": 30000,
+        "remarks": "Hadiah Ultah",
+        "balance_before": 400000,
+        "balance_after": 370000,
+        "created_date": "2026-08-11T22:23:20Z"
       }
-    }
-    ```
+    ],
+    "pagination": { "page": 1, "limit": 20, "total": 3, "total_pages": 1 }
+  }
+}
+```
 
-#### 2. Payment (`POST /pay`)
-*   **Headers**:
-    *   `Idempotency-Key`: `<UUID>` *(Required, e.g. `d3b07384-d113-49c5-a5b6-728b7d5a5cf2`)*
-*   **Request Body**:
-    ```json
-    {
-      "amount": 25000,
-      "remarks": "Lunch payment"
-    }
-    ```
-    *Note: `amount` must be an integer between `1` and `50000000`. `remarks` is optional (max 100 characters).*
-*   **Success Response** (HTTP status `201 Created`):
-    ```json
-    {
-      "status": "SUCCESS",
-      "result": {
-        "payment_id": "c3f8e58a-3bc1-4048-9da7-25e2e8312015",
-        "amount": 25000,
-        "remarks": "Lunch payment",
-        "balance_before": 150000,
-        "balance_after": 125000,
-        "created_date": "2026-08-29T01:42:07.000Z"
-      }
-    }
-    ```
-*   **Error Responses**:
-    *   **Insufficient Balance** (HTTP status `422 Unprocessable Entity`):
-        ```json
-        {
-          "status": "FAILED",
-          "error": {
-            "code": "INSUFFICIENT_BALANCE",
-            "message": "Balance is not enough"
-          }
-        }
-        ```
-    *   **Duplicate Idempotency Key with Different Payload** (HTTP status `409 Conflict`):
-        ```json
-        {
-          "status": "FAILED",
-          "error": {
-            "code": "DUPLICATE_IDEMPOTENCY_KEY",
-            "message": "Idempotency key already used with a different payload"
-          }
-        }
-        ```
+### ⚠️ Error Code Reference
+
+| Code | HTTP Status | Where |
+| :--- | :---: | :--- |
+| `VALIDATION_ERROR` | 400 | Any endpoint — DTO validation, missing/invalid `Idempotency-Key`, forbidden profile fields, empty profile body |
+| `UNAUTHENTICATED` | 401 | Any protected endpoint — missing/invalid/expired access token |
+| `INVALID_CREDENTIALS` | 401 | `/login` — wrong phone_number/pin |
+| `INVALID_REFRESH_TOKEN` | 401 | `/refresh-token` — invalid, expired, or revoked |
+| `PHONE_NUMBER_ALREADY_REGISTERED` | 409 | `/register` |
+| `ACCOUNT_LOCKED` | 429 | `/login` — 5 consecutive failed attempts |
+| `INSUFFICIENT_BALANCE` | 422 | `/pay`, `/transfer` |
+| `SELF_TRANSFER_NOT_ALLOWED` | 422 | `/transfer` — target is the caller's own phone number |
+| `RECIPIENT_NOT_FOUND` | 404 | `/transfer` — target phone number not registered |
+| `DUPLICATE_IDEMPOTENCY_KEY` | 409 | `/pay`, `/transfer` — same key, different payload |
+
+---
+
+## 📮 Manual Testing with Postman
+
+A ready-to-import collection lives under [`postman/`](postman/):
+
+*   [`Digital-Wallet-API.postman_collection.json`](postman/Digital-Wallet-API.postman_collection.json) — happy path + key failure cases per endpoint (not exhaustive — see `docs/TDD.md` Section 2).
+*   [`Digital-Wallet-API-Local.postman_environment.json`](postman/Digital-Wallet-API-Local.postman_environment.json) — `base_url` pointed at `http://localhost:3001/api/v1`, plus empty `access_token`/`refresh_token` slots.
+
+**To use it:**
+1. In Postman: **Import** both files.
+2. Select the **"Digital Wallet API - Local"** environment (top-right environment picker).
+3. Run **Auth → Register**, then **Auth → Login** — Login's test script saves `access_token`/`refresh_token` into the environment automatically; every other request inherits the bearer token from the collection's auth settings.
+4. For the Transfer requests, run **Auth → Register Recipient** first so `target_phone_number` resolves to a real user.
+5. Requests suffixed with a status code (e.g. *"Pay - Insufficient Balance (422)"*) demonstrate the matching failure case from the [Error Code Reference](#️-error-code-reference) above.
 
 ---
 
 ## 🧪 Testing
 
-The project uses Jest for unit, integration, and concurrency testing.
-
-### 1. Run Unit Tests (Mocked Dependencies)
-Unit tests verify the isolated business logic inside controllers and services:
+### 1. Unit Tests (mocked dependencies)
 ```bash
 npm run test
 ```
 
-### 2. Run Integration & E2E Tests (Real Database)
-Integration tests require a separate test database to validate constraints and transactions accurately.
-*   Spin up the test database container:
-    ```bash
-    docker-compose -f docker-compose.test.yml up -d
-    ```
-*   Run the E2E test suite:
-    ```bash
-    npm run test:e2e
-    ```
+### 2. Integration & E2E Tests (real Postgres + Redis)
+```bash
+docker-compose -f docker-compose.test.yml up -d
+npm run test:e2e
+```
 
-### 3. Run Concurrency Tests
-Validates the ledger behavior, row locks (`SELECT ... FOR UPDATE`), and RabbitMQ message processing under heavy load:
+### 3. Concurrency Tests
+Race-condition suite (concurrent `/payment`, `/transfer`, same-idempotency-key requests, row locks) — not required on every commit, but must pass before merging to `main`:
 ```bash
 npm run test:concurrency
 ```
 
-### 4. Check Code Coverage
-Generates a code coverage report inside the `/coverage` directory:
+### 4. Coverage
 ```bash
 npm run test:cov
 ```
+`coverageThreshold` in `package.json` enforces the service layer (`auth`/`users`/`transactions`/`wallet` `*.service.ts`) at 80%+ statements/lines/functions and 70%+ branches (TDD.md Section 12).
 
 ---
 
-## 📄 License & Author
+## 📄 Author
 
-*   **Author**: Senior Backend Developer Team
-*   **License**: Licensed under the [MIT License](LICENSE)
+Abi ([@CodeByAbi](https://github.com/CodeByAbi)) — private assessment project, `UNLICENSED`.

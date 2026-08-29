@@ -9,6 +9,7 @@ export interface ProfileResult {
   phone_number: string;
   address: string;
   balance: number;
+  updated_date: string;
 }
 
 interface UserRecord {
@@ -18,6 +19,7 @@ interface UserRecord {
   phoneNumber: string;
   address: string;
   balance: bigint;
+  updatedAt: Date;
 }
 
 const PROFILE_SELECT = {
@@ -27,6 +29,7 @@ const PROFILE_SELECT = {
   phoneNumber: true,
   address: true,
   balance: true,
+  updatedAt: true,
 } as const;
 
 @Injectable()
@@ -76,6 +79,7 @@ export class UsersService {
       phone_number: user.phoneNumber,
       address: user.address,
       balance: Number(user.balance),
+      updated_date: user.updatedAt.toISOString(),
     };
   }
 }

@@ -24,7 +24,7 @@ Node.js + NestJS, PostgreSQL via Prisma ORM, Redis + BullMQ for the transfer bac
 ```
 src/
 ├── auth/          # register, login, refresh-token, JWT guard
-├── users/         # GET/PATCH /profile
+├── users/         # GET/PUT /profile
 ├── wallet/
 │   ├── topup/
 │   ├── payment/
