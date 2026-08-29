@@ -37,6 +37,7 @@ const prismaMock = {
 
 const jwtServiceMock = {
   sign: jest.fn(),
+  verify: jest.fn(),
 };
 
 const configServiceMock = {
@@ -339,6 +340,112 @@ describe('AuthService', () => {
       expect(caught?.errorCode).toBe('ACCOUNT_LOCKED');
       expect(caught?.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
       expect(prismaMock.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // register(): duplicate phone_number → PHONE_NUMBER_ALREADY_REGISTERED
+  // (gap-filled Phase 8 — the P2002 catch path had no unit test before)
+  // ---------------------------------------------------------------------------
+  describe('register() duplicate phone_number handling', () => {
+    it('throws PHONE_NUMBER_ALREADY_REGISTERED (409) on a P2002 unique violation', async () => {
+      prismaMock.user.create.mockRejectedValue(
+        Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+      );
+
+      const dto = {
+        first_name: 'Test',
+        last_name: 'User',
+        phone_number: '081200000099',
+        address: 'Jl. Test',
+        pin: PLAIN_PIN,
+      };
+
+      let caught: AppException | undefined;
+      try {
+        await service.register(dto);
+      } catch (e) {
+        caught = e as AppException;
+      }
+
+      expect(caught).toBeInstanceOf(AppException);
+      expect(caught?.errorCode).toBe('PHONE_NUMBER_ALREADY_REGISTERED');
+      expect(caught?.getStatus()).toBe(HttpStatus.CONFLICT);
+    });
+
+    it('rethrows unrelated errors untouched', async () => {
+      prismaMock.user.create.mockRejectedValue(new Error('connection reset'));
+
+      await expect(
+        service.register({
+          first_name: 'Test',
+          last_name: 'User',
+          phone_number: '081200000099',
+          address: 'Jl. Test',
+          pin: PLAIN_PIN,
+        }),
+      ).rejects.toThrow('connection reset');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // refreshToken() — no unit coverage existed before Phase 8; only exercised
+  // indirectly via E2E (test/auth.e2e-spec.ts), which doesn't count toward
+  // service-layer unit coverage.
+  // ---------------------------------------------------------------------------
+  describe('refreshToken()', () => {
+    it('throws INVALID_REFRESH_TOKEN (401) when the JWT itself is malformed/expired', async () => {
+      jwtServiceMock.verify.mockImplementation(() => {
+        throw new Error('jwt expired');
+      });
+
+      let caught: AppException | undefined;
+      try {
+        await service.refreshToken({ refresh_token: 'bad.token.here' });
+      } catch (e) {
+        caught = e as AppException;
+      }
+
+      expect(caught).toBeInstanceOf(AppException);
+      expect(caught?.errorCode).toBe('INVALID_REFRESH_TOKEN');
+      expect(caught?.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
+      expect(prismaMock.refreshToken.findMany).not.toHaveBeenCalled();
+    });
+
+    it('throws INVALID_REFRESH_TOKEN (401) when no stored hash matches (revoked/expired/unknown)', async () => {
+      jwtServiceMock.verify.mockReturnValue({ sub: FAKE_USER_ID });
+      prismaMock.refreshToken.findMany.mockResolvedValue([
+        { tokenHash: await bcrypt.hash('some-other-token', 10) },
+      ]);
+
+      await expect(
+        service.refreshToken({ refresh_token: 'valid.but.unmatched' }),
+      ).rejects.toMatchObject({
+        errorCode: 'INVALID_REFRESH_TOKEN',
+      });
+    });
+
+    it('issues a new access_token when the JWT and a stored hash both match', async () => {
+      const rawToken = 'the-actual-refresh-token';
+      jwtServiceMock.verify.mockReturnValue({ sub: FAKE_USER_ID });
+      prismaMock.refreshToken.findMany.mockResolvedValue([
+        { tokenHash: await bcrypt.hash('some-unrelated-token', 10) },
+        { tokenHash: await bcrypt.hash(rawToken, 10) },
+      ]);
+      jwtServiceMock.sign.mockReturnValue('new-access-token');
+
+      const result = await service.refreshToken({ refresh_token: rawToken });
+
+      expect(result).toEqual({ access_token: 'new-access-token', expires_in: 900 });
+      // No refresh_token rotation — only a new access_token is minted (SRS 3.3)
+      expect(result).not.toHaveProperty('refresh_token');
+
+      const signCall = jwtServiceMock.sign.mock.calls[0] as [
+        { sub: string },
+        { expiresIn: string },
+      ];
+      expect(signCall[0]).toEqual({ sub: FAKE_USER_ID });
+      expect(signCall[1].expiresIn).toBe('15m');
     });
   });
 });

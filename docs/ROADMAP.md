@@ -63,10 +63,10 @@ Item yang masih outstanding dari sesi TDD kemarin (config backoff jadi env-confi
 - [x] Unit + E2E test paralel (UT-TXN, E2E-TXN-01 s/d 03)
 
 ## Phase 8 — Testing Consolidation
-- [ ] Isi gap unit/integration/E2E test yang belum tercover dari phase sebelumnya
-- [ ] `test:concurrency` suite (RC-01, RC-02, RC-03) — **baru bisa dijalankan penuh di phase ini** karena butuh Transfer + Worker (Phase 6) sudah selesai
-- [ ] Edge cases checklist (TDD Section 10)
-- [ ] Cek coverage: service layer 80%+ (TDD Section 12)
+- [x] Isi gap unit/integration/E2E test yang belum tercover dari phase sebelumnya (auth.service register-duplicate + refreshToken paths, pay/transfer/register/login DTO validation edge cases)
+- [x] `test:concurrency` suite (RC-01, RC-02, RC-03) — **baru bisa dijalankan penuh di phase ini** karena butuh Transfer + Worker (Phase 6) sudah selesai. Juga menambahkan IT-DB-03 (row lock dua koneksi paralel) dan concurrent-register (Section 10) di suite yang sama, karena sama-sama butuh Postgres real dan sama-sama tidak wajib jalan tiap commit.
+- [x] Edge cases checklist (TDD Section 10) — lihat catatan di TDD.md Section 11 soal TR-01/TR-02 (fault-injection mid-transaction) yang didokumentasikan sebagai verified-by-review, bukan dipaksa jadi automated test
+- [x] Cek coverage: service layer 80%+ (TDD Section 12) — enforced via `coverageThreshold` di package.json (auth/users/transactions/wallet `*.service.ts`, 80% stmt/line/func, 70% branch); semua service saat ini 100% statement coverage kecuali transfer.processor.ts (95%) dan transfer-reconciliation.service.ts (100% stmt, 78% branch)
 
 ## Phase 9 — Documentation & Postman
 - [ ] Postman collection — happy path + kegagalan kunci tiap endpoint (bukan exhaustive, lihat TDD Section 2)

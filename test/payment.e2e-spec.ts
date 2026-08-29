@@ -186,6 +186,26 @@ describe('Payment E2E', () => {
     expect(res.body.error.code).toBe('DUPLICATE_IDEMPOTENCY_KEY');
   });
 
+  // ---------------------------------------------------------------------------
+  // TDD Section 10 edge case: amount exactly equals balance → succeeds with
+  // balance_after = 0, must not be mistakenly rejected as insufficient.
+  // ---------------------------------------------------------------------------
+  it('amount pas sama dengan saldo → 201, balance_after = 0', async () => {
+    const { phone, accessToken } = await registerAndLogin(100000);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/pay')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ amount: 100000 })
+      .expect(201);
+
+    expect(res.body.result.balance_after).toBe(0);
+
+    const userInDb = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+    expect(Number(userInDb?.balance)).toBe(0);
+  });
+
   it('missing Idempotency-Key header → 400 VALIDATION_ERROR', async () => {
     const { accessToken } = await registerAndLogin(500000);
 

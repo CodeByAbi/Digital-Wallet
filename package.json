@@ -21,7 +21,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
+    "test:concurrency": "jest --config ./test/jest-concurrency.json --runInBand"
   },
   "dependencies": {
     "@bull-board/api": "^9.5.0",
@@ -89,7 +90,13 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "coverageThreshold": {
+      "**/auth/*.service.ts": { "statements": 80, "lines": 80, "functions": 80, "branches": 70 },
+      "**/users/*.service.ts": { "statements": 80, "lines": 80, "functions": 80, "branches": 70 },
+      "**/transactions/*.service.ts": { "statements": 80, "lines": 80, "functions": 80, "branches": 70 },
+      "**/wallet/**/*.service.ts": { "statements": 80, "lines": 80, "functions": 80, "branches": 70 }
+    }
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

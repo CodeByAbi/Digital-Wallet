@@ -218,6 +218,8 @@ Beberapa skenario di SYSTEM_DESIGN Section 10 (Risiko & Mitigasi) **tidak semuan
 
 Ini bukan alasan untuk skip — tapi supaya realistis: tidak semua baris di Section 10 SYSTEM_DESIGN akan punya automated test 1-banding-1. Sebagian besar iya, satu-dua butuh manual verification yang didokumentasikan.
 
+- **TR-01/TR-02 (Section 5) — error di step terakhir transaksi (mis. insert ledger gagal setelah balance sudah di-update dalam memori tx)** — dicoba dicari cara fault-injection yang realistis dari luar (tanpa nambah test-only hook ke source code) saat Phase 8, dan tidak ketemu yang tidak fragile: satu-satunya trigger constraint violation asli di tengah transaksi payment/transfer (unique constraint `idempotency_key`) sudah otomatis jadi jalur RC-03/IT-DB-02, bukan skenario TR yang berdiri sendiri. Yang tervalidasi sebagai gantinya: (1) unit test bermock (`payment.service.spec.ts`, `transfer.service.spec.ts`) yang membuktikan saat `$transaction` reject, tidak ada panggilan balance-update/insert lain di luar callback itu; (2) RC-03 di `test:concurrency` yang membuktikan secara end-to-end di Postgres asli bahwa saat insert kedua gagal karena constraint, saldo cuma ke-debit sekali (bukti rollback beneran jalan, bukan cuma asumsi kode). Atomicity `$transaction` sendiri adalah jaminan Prisma/Postgres, bukan sesuatu yang bisa dirusak oleh logic aplikasi ini karena semua mutation (balance + ledger) memang satu callback yang sama.
+
 ---
 
 ## 12. Coverage Target
