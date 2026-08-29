@@ -1,8 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AppException } from '../../common/exceptions/app.exception';
 
 const FAKE_USER_ID = 'bc1c823e-b0fb-4b20-88c0-dff25e283252';
 const IDEMPOTENCY_KEY = '2f4a9c1e-5b3a-4e3b-9a1a-8f0b2c3d4e5f';
@@ -16,7 +14,7 @@ const txMock = {
 
 const prismaMock = {
   payment: { findUnique: jest.fn() },
-  $transaction: jest.fn() as jest.Mock,
+  $transaction: jest.fn(),
 };
 
 describe('PaymentService', () => {
@@ -24,12 +22,15 @@ describe('PaymentService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    prismaMock.$transaction.mockImplementation((cb: (tx: typeof txMock) => unknown) =>
-      cb(txMock),
+    prismaMock.$transaction.mockImplementation(
+      (cb: (tx: typeof txMock) => unknown) => cb(txMock),
     );
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PaymentService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        PaymentService,
+        { provide: PrismaService, useValue: prismaMock },
+      ],
     }).compile();
 
     service = module.get<PaymentService>(PaymentService);
@@ -40,7 +41,9 @@ describe('PaymentService', () => {
   // ---------------------------------------------------------------------------
   it('throws INSUFFICIENT_BALANCE and never touches balance when saldo is too low', async () => {
     prismaMock.payment.findUnique.mockResolvedValue(null);
-    txMock.$queryRaw.mockResolvedValue([{ id: FAKE_USER_ID, balance: BigInt(50000) }]);
+    txMock.$queryRaw.mockResolvedValue([
+      { id: FAKE_USER_ID, balance: BigInt(50000) },
+    ]);
 
     await expect(
       service.pay(FAKE_USER_ID, { amount: 100000 }, IDEMPOTENCY_KEY),
@@ -57,7 +60,9 @@ describe('PaymentService', () => {
   // ---------------------------------------------------------------------------
   it('locks the row, debits balance exactly, and writes a DEBIT ledger entry', async () => {
     prismaMock.payment.findUnique.mockResolvedValue(null);
-    txMock.$queryRaw.mockResolvedValue([{ id: FAKE_USER_ID, balance: BigInt(500000) }]);
+    txMock.$queryRaw.mockResolvedValue([
+      { id: FAKE_USER_ID, balance: BigInt(500000) },
+    ]);
     txMock.payment.create.mockResolvedValue({
       id: 'payment-id',
       amount: BigInt(100000),
@@ -166,7 +171,11 @@ describe('PaymentService', () => {
       Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
     );
 
-    const result = await service.pay(FAKE_USER_ID, { amount: 100000 }, IDEMPOTENCY_KEY);
+    const result = await service.pay(
+      FAKE_USER_ID,
+      { amount: 100000 },
+      IDEMPOTENCY_KEY,
+    );
 
     expect(result.payment_id).toBe('winner-payment-id');
   });
@@ -193,7 +202,9 @@ describe('PaymentService', () => {
 
   it('rethrows unrelated transaction errors untouched', async () => {
     prismaMock.payment.findUnique.mockResolvedValue(null);
-    prismaMock.$transaction.mockRejectedValueOnce(new Error('connection reset'));
+    prismaMock.$transaction.mockRejectedValueOnce(
+      new Error('connection reset'),
+    );
 
     await expect(
       service.pay(FAKE_USER_ID, { amount: 100000 }, IDEMPOTENCY_KEY),

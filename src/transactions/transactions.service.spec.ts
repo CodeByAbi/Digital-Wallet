@@ -21,7 +21,10 @@ describe('TransactionsService', () => {
     prismaMock.transaction.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TransactionsService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        TransactionsService,
+        { provide: PrismaService, useValue: prismaMock },
+      ],
     }).compile();
 
     service = module.get<TransactionsService>(TransactionsService);
@@ -50,7 +53,12 @@ describe('TransactionsService', () => {
     expect(prismaMock.transaction.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 0, take: 20 }),
     );
-    expect(result.pagination).toEqual({ page: 1, limit: 20, total: 0, total_pages: 1 });
+    expect(result.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      total: 0,
+      total_pages: 1,
+    });
   });
 
   it('applies page/limit into skip/take and echoes them back in pagination', async () => {
@@ -61,7 +69,12 @@ describe('TransactionsService', () => {
     expect(prismaMock.transaction.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 20, take: 10 }),
     );
-    expect(result.pagination).toEqual({ page: 3, limit: 10, total: 45, total_pages: 5 });
+    expect(result.pagination).toEqual({
+      page: 3,
+      limit: 10,
+      total: 45,
+      total_pages: 5,
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -121,7 +134,11 @@ describe('TransactionsService', () => {
     const result = await service.list(FAKE_USER_ID, {});
 
     expect(result.data).toEqual([
-      expect.objectContaining({ transaction_id: 'txn-1', transaction_type: 'TOP_UP', remarks: null }),
+      expect.objectContaining({
+        transaction_id: 'txn-1',
+        transaction_type: 'TOP_UP',
+        remarks: null,
+      }),
       expect.objectContaining({
         transaction_id: 'txn-2',
         transaction_type: 'PAYMENT',

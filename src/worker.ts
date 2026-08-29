@@ -5,4 +5,4 @@ async function bootstrap() {
   // No HTTP server — this process only consumes the transfer queue.
   await NestFactory.createApplicationContext(WorkerModule);
 }
-bootstrap();
+void bootstrap();

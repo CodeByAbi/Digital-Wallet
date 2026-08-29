@@ -46,7 +46,10 @@ export class TransactionsService {
   // ---------------------------------------------------------------------------
   // LIST TRANSACTIONS (SRS 3.9) — paginated, newest first, scoped to userId
   // ---------------------------------------------------------------------------
-  async list(userId: string, dto: ListTransactionsDto): Promise<ListTransactionsResult> {
+  async list(
+    userId: string,
+    dto: ListTransactionsDto,
+  ): Promise<ListTransactionsResult> {
     const page = dto.page ?? DEFAULT_PAGE;
     const limit = dto.limit ?? DEFAULT_LIMIT;
 
@@ -78,7 +81,9 @@ export class TransactionsService {
     };
   }
 
-  private async fetchRemarks(rows: TransactionRow[]): Promise<Map<string, string | null>> {
+  private async fetchRemarks(
+    rows: TransactionRow[],
+  ): Promise<Map<string, string | null>> {
     const paymentIds = rows
       .filter((row) => row.transactionType === 'PAYMENT')
       .map((row) => row.referenceId);
@@ -102,12 +107,17 @@ export class TransactionsService {
     ]);
 
     const remarksByReferenceId = new Map<string, string | null>();
-    for (const payment of payments) remarksByReferenceId.set(payment.id, payment.remarks);
-    for (const transfer of transfers) remarksByReferenceId.set(transfer.id, transfer.remarks);
+    for (const payment of payments)
+      remarksByReferenceId.set(payment.id, payment.remarks);
+    for (const transfer of transfers)
+      remarksByReferenceId.set(transfer.id, transfer.remarks);
     return remarksByReferenceId;
   }
 
-  private toResult(row: TransactionRow, remarks: string | null): TransactionResult {
+  private toResult(
+    row: TransactionRow,
+    remarks: string | null,
+  ): TransactionResult {
     return {
       transaction_id: row.id,
       transaction_type: row.transactionType,

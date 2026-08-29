@@ -19,7 +19,8 @@ describe('RC-02: concurrent /transfer from the same sender', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const uniqueSuffix = () => String(Math.floor(Math.random() * 900000) + 100000);
+  const uniqueSuffix = () =>
+    String(Math.floor(Math.random() * 900000) + 100000);
 
   const registerAndLogin = async (
     prefix: string,
@@ -44,7 +45,8 @@ describe('RC-02: concurrent /transfer from the same sender', () => {
       .send({ phone_number: phone, pin })
       .expect(200);
 
-    const accessToken = (loginRes.body.result as { access_token: string }).access_token;
+    const accessToken = (loginRes.body.result as { access_token: string })
+      .access_token;
 
     if (initialTopUp > 0) {
       await request(app.getHttpServer())
@@ -64,7 +66,9 @@ describe('RC-02: concurrent /transfer from the same sender', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new ResponseInterceptor());
 
@@ -89,7 +93,9 @@ describe('RC-02: concurrent /transfer from the same sender', () => {
       await prisma.refreshToken.deleteMany({
         where: { user: { phoneNumber: { startsWith: prefix } } },
       });
-      await prisma.user.deleteMany({ where: { phoneNumber: { startsWith: prefix } } });
+      await prisma.user.deleteMany({
+        where: { phoneNumber: { startsWith: prefix } },
+      });
     }
     await app.close();
   });
@@ -113,7 +119,9 @@ describe('RC-02: concurrent /transfer from the same sender', () => {
     const failed = resA.status === 422 ? resA : resB;
     expect(failed.body.error.code).toBe('INSUFFICIENT_BALANCE');
 
-    const senderInDb = await prisma.user.findUnique({ where: { phoneNumber: sender.phone } });
+    const senderInDb = await prisma.user.findUnique({
+      where: { phoneNumber: sender.phone },
+    });
     expect(Number(senderInDb?.balance)).toBe(50000);
 
     const transferCount = await prisma.transfer.count({

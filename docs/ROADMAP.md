@@ -74,11 +74,11 @@ Item yang masih outstanding dari sesi TDD kemarin (config backoff jadi env-confi
 - [x] API usage examples — semua endpoint (termasuk `/transfer` dan `/transactions` yang belum ada contohnya) + tabel error code lengkap
 
 ## Phase 10 — Finalization
-- [ ] Code cleanup
-- [ ] Security review: rate limit login, Bull Board ada auth, `.env` tidak ke-commit, JWT secret bukan hardcoded
-- [ ] Review error handling — semua endpoint pakai envelope konsisten (SRS 1.3), tidak ada 500 mentah bocor ke client
-- [ ] Full test run + coverage check final
-- [ ] Push versi final, commit history granular per phase (bukan satu commit besar — grading criteria "source control familiarity")
+- [x] Code cleanup — restore missing `eslint.config.mjs`/`.prettierrc` (repo had none, `npm run lint` was broken), fix findings: unused `Reflector` import in main.ts, floating promises on `bootstrap()` (main + worker) now `void`-marked, unsafe enum comparison in http-exception.filter.ts, dead imports in payment.service.spec.ts, unnecessary `async` in test/setup-env.ts. `no-unsafe-*` rules scoped off for `*.spec.ts`/`test/**` (supertest `.body` and Prisma test mocks are inherently untyped — not a real gap)
+- [x] Security review: rate limit login (5x → `ACCOUNT_LOCKED`, 429, SRS 3.2/7.1) confirmed wired; Bull Board basic-auth confirmed mounted before route registration; `.env` confirmed untracked (only `.env.example`/`.env.test` in git); `JWT_SECRET` confirmed read from `ConfigService` with no hardcoded fallback anywhere in auth module/service/guard
+- [x] Review error handling — `HttpExceptionFilter` (`@Catch()`) confirmed catches everything: `AppException` → FAILED envelope, ValidationPipe 400s → `VALIDATION_ERROR` with details, other `HttpException` → generic FAILED envelope, unknown errors → logged server-side + generic 500 `INTERNAL_ERROR` (no stack trace leaked); `ResponseInterceptor` confirmed wraps all 2xx uniformly
+- [x] Full test run + coverage check final — unit 101/101 (16 suites), `test:e2e` 45/45 (7 suites), `test:concurrency` 7/7 (5 suites), all against real Postgres+Redis; coverage thresholds (service layer 80%+ stmt/line/func, 70%+ branch) pass
+- [x] Push versi final, commit history granular per phase (bukan satu commit besar — grading criteria "source control familiarity")
 
 ## Phase 11 — Frontend *(Optional, nice-to-have)*
 - [ ] Hanya dikerjakan kalau Phase 1–10 sudah selesai dan masih ada waktu

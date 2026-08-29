@@ -436,7 +436,10 @@ describe('AuthService', () => {
 
       const result = await service.refreshToken({ refresh_token: rawToken });
 
-      expect(result).toEqual({ access_token: 'new-access-token', expires_in: 900 });
+      expect(result).toEqual({
+        access_token: 'new-access-token',
+        expires_in: 900,
+      });
       // No refresh_token rotation — only a new access_token is minted (SRS 3.3)
       expect(result).not.toHaveProperty('refresh_token');
 

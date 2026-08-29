@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
 import { TransferService } from './transfer.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TRANSFER_QUEUE, PROCESS_TRANSFER_JOB } from './transfer-queue.constants';
+import {
+  TRANSFER_QUEUE,
+  PROCESS_TRANSFER_JOB,
+} from './transfer-queue.constants';
 
 const SENDER_ID = 'bc1c823e-b0fb-4b20-88c0-dff25e283252';
 const SENDER_PHONE = '081100000001';
@@ -20,7 +23,7 @@ const txMock = {
 const prismaMock = {
   transfer: { findUnique: jest.fn() },
   user: { findUnique: jest.fn() },
-  $transaction: jest.fn() as jest.Mock,
+  $transaction: jest.fn(),
 };
 
 const queueMock = { add: jest.fn() };
@@ -30,8 +33,8 @@ describe('TransferService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    prismaMock.$transaction.mockImplementation((cb: (tx: typeof txMock) => unknown) =>
-      cb(txMock),
+    prismaMock.$transaction.mockImplementation(
+      (cb: (tx: typeof txMock) => unknown) => cb(txMock),
     );
 
     const module: TestingModule = await Test.createTestingModule({
@@ -135,7 +138,11 @@ describe('TransferService', () => {
 
     const result = await service.transfer(
       SENDER_ID,
-      { target_phone_number: RECIPIENT_PHONE, amount: 100000, remarks: 'Hadiah Ultah' },
+      {
+        target_phone_number: RECIPIENT_PHONE,
+        amount: 100000,
+        remarks: 'Hadiah Ultah',
+      },
       IDEMPOTENCY_KEY,
     );
 

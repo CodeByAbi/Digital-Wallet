@@ -16,7 +16,8 @@ describe('Payment E2E', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const uniqueSuffix = () => String(Math.floor(Math.random() * 900000) + 100000);
+  const uniqueSuffix = () =>
+    String(Math.floor(Math.random() * 900000) + 100000);
 
   // Distinct phone prefix from other e2e spec files (0812/0813/0814) — Jest
   // runs e2e spec files in parallel workers against the same shared test DB.
@@ -42,7 +43,8 @@ describe('Payment E2E', () => {
       .send({ phone_number: phone, pin })
       .expect(200);
 
-    const accessToken = (loginRes.body.result as { access_token: string }).access_token;
+    const accessToken = (loginRes.body.result as { access_token: string })
+      .access_token;
 
     if (initialTopUp > 0) {
       await request(app.getHttpServer())
@@ -62,7 +64,9 @@ describe('Payment E2E', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new ResponseInterceptor());
 
@@ -84,7 +88,9 @@ describe('Payment E2E', () => {
     await prisma.refreshToken.deleteMany({
       where: { user: { phoneNumber: { startsWith: '0815' } } },
     });
-    await prisma.user.deleteMany({ where: { phoneNumber: { startsWith: '0815' } } });
+    await prisma.user.deleteMany({
+      where: { phoneNumber: { startsWith: '0815' } },
+    });
     await app.close();
   });
 
@@ -106,7 +112,9 @@ describe('Payment E2E', () => {
     expect(res.body.result.balance_after).toBe(400000);
     expect(res.body.result.remarks).toBe('Pulsa Telkomsel 100k');
 
-    const userInDb = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+    const userInDb = await prisma.user.findUnique({
+      where: { phoneNumber: phone },
+    });
     expect(Number(userInDb?.balance)).toBe(400000);
   });
 
@@ -125,7 +133,9 @@ describe('Payment E2E', () => {
 
     expect(res.body.error.code).toBe('INSUFFICIENT_BALANCE');
 
-    const userInDb = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+    const userInDb = await prisma.user.findUnique({
+      where: { phoneNumber: phone },
+    });
     expect(Number(userInDb?.balance)).toBe(50000);
   });
 
@@ -158,7 +168,9 @@ describe('Payment E2E', () => {
     });
     expect(paymentCount).toBe(1);
 
-    const userInDb = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+    const userInDb = await prisma.user.findUnique({
+      where: { phoneNumber: phone },
+    });
     expect(Number(userInDb?.balance)).toBe(400000); // debited exactly once
   });
 
@@ -202,7 +214,9 @@ describe('Payment E2E', () => {
 
     expect(res.body.result.balance_after).toBe(0);
 
-    const userInDb = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+    const userInDb = await prisma.user.findUnique({
+      where: { phoneNumber: phone },
+    });
     expect(Number(userInDb?.balance)).toBe(0);
   });
 
