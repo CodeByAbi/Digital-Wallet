@@ -15,7 +15,8 @@ describe('Top Up E2E', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const uniqueSuffix = () => String(Math.floor(Math.random() * 900000) + 100000);
+  const uniqueSuffix = () =>
+    String(Math.floor(Math.random() * 900000) + 100000);
 
   // Distinct phone prefix from other e2e spec files (0812/0813/0815) — Jest
   // runs e2e spec files in parallel workers against the same shared test DB.
@@ -44,7 +45,8 @@ describe('Top Up E2E', () => {
 
     return {
       phone,
-      accessToken: (loginRes.body.result as { access_token: string }).access_token,
+      accessToken: (loginRes.body.result as { access_token: string })
+        .access_token,
     };
   };
 
@@ -55,7 +57,9 @@ describe('Top Up E2E', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new ResponseInterceptor());
 
@@ -74,7 +78,9 @@ describe('Top Up E2E', () => {
     await prisma.refreshToken.deleteMany({
       where: { user: { phoneNumber: { startsWith: '0814' } } },
     });
-    await prisma.user.deleteMany({ where: { phoneNumber: { startsWith: '0814' } } });
+    await prisma.user.deleteMany({
+      where: { phoneNumber: { startsWith: '0814' } },
+    });
     await app.close();
   });
 
@@ -96,7 +102,9 @@ describe('Top Up E2E', () => {
     expect(res.body.result.balance_after).toBe(500000);
     expect(res.body.result.top_up_id).toBeDefined();
 
-    const userInDb = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+    const userInDb = await prisma.user.findUnique({
+      where: { phoneNumber: phone },
+    });
     expect(Number(userInDb?.balance)).toBe(500000);
   });
 

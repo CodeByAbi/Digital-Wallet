@@ -12,7 +12,7 @@ const txMock = {
 };
 
 const prismaMock = {
-  $transaction: jest.fn() as jest.Mock,
+  $transaction: jest.fn(),
 };
 
 describe('TopupService', () => {
@@ -20,12 +20,15 @@ describe('TopupService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    prismaMock.$transaction.mockImplementation((cb: (tx: typeof txMock) => unknown) =>
-      cb(txMock),
+    prismaMock.$transaction.mockImplementation(
+      (cb: (tx: typeof txMock) => unknown) => cb(txMock),
     );
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TopupService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        TopupService,
+        { provide: PrismaService, useValue: prismaMock },
+      ],
     }).compile();
 
     service = module.get<TopupService>(TopupService);
@@ -35,7 +38,9 @@ describe('TopupService', () => {
   // UT-WALLET-05 (topup side): balance_after computed exactly via BigInt
   // ---------------------------------------------------------------------------
   it('locks the user row, credits balance exactly, and writes a CREDIT ledger entry', async () => {
-    txMock.$queryRaw.mockResolvedValue([{ id: FAKE_USER_ID, balance: BigInt(999999999999) }]);
+    txMock.$queryRaw.mockResolvedValue([
+      { id: FAKE_USER_ID, balance: BigInt(999999999999) },
+    ]);
     txMock.topUp.create.mockResolvedValue({
       id: 'top-up-id',
       amount: BigInt(12345678),

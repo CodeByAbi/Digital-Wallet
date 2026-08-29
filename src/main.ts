@@ -1,4 +1,4 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
 import { createBullBoard } from '@bull-board/api';
@@ -20,9 +20,9 @@ async function bootstrap() {
   // ValidationPipe: strip unknown fields, auto-transform primitive types
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,       // strip fields not in DTO
+      whitelist: true, // strip fields not in DTO
       forbidNonWhitelisted: false, // silently strip extras (not error)
-      transform: true,       // auto-cast primitives
+      transform: true, // auto-cast primitives
     }),
   );
 
@@ -56,4 +56,4 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3001);
 }
-bootstrap();
+void bootstrap();

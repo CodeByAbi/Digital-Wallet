@@ -12,6 +12,10 @@ import { TRANSFER_QUEUE } from './transfer-queue.constants';
   // resolvable in this module's DI container.
   imports: [AuthModule, BullModule.registerQueue({ name: TRANSFER_QUEUE })],
   controllers: [TransferController],
-  providers: [TransferService, TransferProcessor, TransferReconciliationService],
+  providers: [
+    TransferService,
+    TransferProcessor,
+    TransferReconciliationService,
+  ],
 })
 export class TransferModule {}

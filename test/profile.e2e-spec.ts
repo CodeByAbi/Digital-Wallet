@@ -15,7 +15,8 @@ describe('Profile E2E', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const uniqueSuffix = () => String(Math.floor(Math.random() * 900000) + 100000);
+  const uniqueSuffix = () =>
+    String(Math.floor(Math.random() * 900000) + 100000);
 
   // Registers + logs in a fresh user, returns { phone, accessToken }
   const registerAndLogin = async (): Promise<{
@@ -149,7 +150,9 @@ describe('Profile E2E', () => {
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
     expect(res.body.error.message).toContain('phone_number');
 
-    const userInDb = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+    const userInDb = await prisma.user.findUnique({
+      where: { phoneNumber: phone },
+    });
     expect(userInDb).not.toBeNull();
     expect(userInDb?.phoneNumber).toBe(phone);
     expect(userInDb?.firstName).toBe('Profile'); // first_name also NOT partially applied

@@ -21,7 +21,8 @@ describe('Auth E2E', () => {
   let prisma: PrismaService;
 
   // Use a unique phone_number prefix to avoid collisions between test runs
-  const uniqueSuffix = () => String(Math.floor(Math.random() * 900000) + 100000);
+  const uniqueSuffix = () =>
+    String(Math.floor(Math.random() * 900000) + 100000);
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -289,11 +290,15 @@ describe('Auth E2E', () => {
         .send({ phone_number: phone, pin: '112233' })
         .expect(200);
 
-      const { refresh_token } = loginRes.body.result as { refresh_token: string };
+      const { refresh_token } = loginRes.body.result as {
+        refresh_token: string;
+      };
 
       // Revoke every refresh token for this user directly at the DB level
       // (no logout endpoint exists yet to do this through the API).
-      const user = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+      const user = await prisma.user.findUnique({
+        where: { phoneNumber: phone },
+      });
       await prisma.refreshToken.updateMany({
         where: { userId: user!.id },
         data: { revoked: true },
@@ -306,7 +311,9 @@ describe('Auth E2E', () => {
 
       expect(res.body.status).toBe('FAILED');
       expect(res.body.error.code).toBe('INVALID_REFRESH_TOKEN');
-      expect(res.body.error.message).toBe('Refresh token is invalid or expired');
+      expect(res.body.error.message).toBe(
+        'Refresh token is invalid or expired',
+      );
     });
 
     it('E2E-REFRESH-02b: expired refresh_token → 401 INVALID_REFRESH_TOKEN', async () => {

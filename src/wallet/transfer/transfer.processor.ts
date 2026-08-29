@@ -85,7 +85,9 @@ export class TransferProcessor extends WorkerHost {
 
   private async refundSender(transferId: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      const transfer = await tx.transfer.findUnique({ where: { id: transferId } });
+      const transfer = await tx.transfer.findUnique({
+        where: { id: transferId },
+      });
       // Already resolved (SUCCESS by a late-arriving success, or FAILED by
       // an earlier refund) — refunding again would double-credit the sender.
       if (!transfer || transfer.status !== 'PENDING') return;
@@ -121,6 +123,8 @@ export class TransferProcessor extends WorkerHost {
       });
     });
 
-    this.logger.warn(`Transfer ${transferId} refunded after exhausting retries`);
+    this.logger.warn(
+      `Transfer ${transferId} refunded after exhausting retries`,
+    );
   }
 }

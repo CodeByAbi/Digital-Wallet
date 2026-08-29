@@ -38,12 +38,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const raw = exception.getResponse() as
-        | string
-        | { message: string | string[]; error?: string };
+        string | { message: string | string[]; error?: string };
 
       // ValidationPipe fires a 400 with { message: string[], error: 'Bad Request' }
       if (
-        status === HttpStatus.BAD_REQUEST &&
+        status === Number(HttpStatus.BAD_REQUEST) &&
         typeof raw === 'object' &&
         Array.isArray((raw as { message: string | string[] }).message)
       ) {
@@ -62,7 +61,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const message =
         typeof raw === 'string'
           ? raw
-          : (raw as { message: string }).message ?? 'An error occurred';
+          : ((raw as { message: string }).message ?? 'An error occurred');
 
       response.status(status).json({
         status: 'FAILED',

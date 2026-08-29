@@ -45,7 +45,10 @@ describe('PayDto', () => {
   });
 
   it('rejects remarks longer than 100 characters', async () => {
-    const dto = plainToInstance(PayDto, { amount: 100000, remarks: 'x'.repeat(101) });
+    const dto = plainToInstance(PayDto, {
+      amount: 100000,
+      remarks: 'x'.repeat(101),
+    });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0].property).toBe('remarks');

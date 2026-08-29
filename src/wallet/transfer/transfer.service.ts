@@ -138,7 +138,9 @@ export class TransferService {
       // the unique constraint on (senderId, idempotencyKey) decides the winner.
       if (isUniqueConstraintViolation(err)) {
         const winner = await this.prisma.transfer.findUnique({
-          where: { senderId_idempotencyKey: { senderId: userId, idempotencyKey } },
+          where: {
+            senderId_idempotencyKey: { senderId: userId, idempotencyKey },
+          },
         });
         if (winner) return this.reconcileWithExisting(winner, dto);
       }
@@ -156,7 +158,10 @@ export class TransferService {
         transferJobOptions(),
       );
     } catch (err) {
-      this.logger.error(`Failed to enqueue transfer ${transfer.id}`, err as Error);
+      this.logger.error(
+        `Failed to enqueue transfer ${transfer.id}`,
+        err as Error,
+      );
     }
 
     return this.toResult(transfer);

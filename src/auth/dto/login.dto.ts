@@ -6,8 +6,7 @@ import { IsNotEmpty, Matches } from 'class-validator';
 export class LoginDto {
   @IsNotEmpty()
   @Matches(/^(\+62|62|0)8[1-9][0-9]{6,10}$/, {
-    message:
-      'phone_number must be a valid Indonesian phone number',
+    message: 'phone_number must be a valid Indonesian phone number',
   })
   phone_number!: string;
 

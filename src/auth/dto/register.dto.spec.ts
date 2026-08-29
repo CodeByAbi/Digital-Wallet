@@ -23,7 +23,10 @@ describe('RegisterDto', () => {
       ['+62811234567', 'international +62 prefix'],
       ['62811234567', 'international 62 prefix (no plus)'],
     ])('accepts %s (%s)', async (phone) => {
-      const dto = plainToInstance(RegisterDto, { ...VALID, phone_number: phone });
+      const dto = plainToInstance(RegisterDto, {
+        ...VALID,
+        phone_number: phone,
+      });
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
     });
@@ -34,7 +37,10 @@ describe('RegisterDto', () => {
       ['0812345678901234', 'too long'],
       ['081abcdefgh', 'non-numeric'],
     ])('rejects %s (%s)', async (phone) => {
-      const dto = plainToInstance(RegisterDto, { ...VALID, phone_number: phone });
+      const dto = plainToInstance(RegisterDto, {
+        ...VALID,
+        phone_number: phone,
+      });
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'phone_number')).toBe(true);
     });
