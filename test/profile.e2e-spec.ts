@@ -107,18 +107,19 @@ describe('Profile E2E', () => {
     expect(res.body.result.last_name).toBe('Tester');
     expect(res.body.result.address).toBe('Jl. Profile No. 1');
     expect(res.body.result.balance).toBe(0);
+    expect(typeof res.body.result.updated_date).toBe('string');
     expect(res.body.result.pin).toBeUndefined();
     expect(res.body.result.pin_hash).toBeUndefined();
   });
 
   // ---------------------------------------------------------------------------
-  // PATCH /profile — success
+  // PUT /profile — success
   // ---------------------------------------------------------------------------
-  it('PATCH /profile dengan field valid → 200, profil terupdate', async () => {
+  it('PUT /profile dengan field valid → 200, profil terupdate', async () => {
     const { accessToken } = await registerAndLogin();
 
     const res = await request(app.getHttpServer())
-      .patch('/api/v1/profile')
+      .put('/api/v1/profile')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ first_name: 'Guntur', address: 'Jl. Baru No. 2' })
       .expect(200);
@@ -128,16 +129,18 @@ describe('Profile E2E', () => {
     expect(res.body.result.address).toBe('Jl. Baru No. 2');
     // last_name untouched
     expect(res.body.result.last_name).toBe('Tester');
+    expect(typeof res.body.result.updated_date).toBe('string');
+    expect(Number.isNaN(Date.parse(res.body.result.updated_date))).toBe(false);
   });
 
   // ---------------------------------------------------------------------------
-  // E2E-PROFILE-03: PATCH /profile with phone_number inserted → 400, DB unchanged
+  // E2E-PROFILE-03: PUT /profile with phone_number inserted → 400, DB unchanged
   // ---------------------------------------------------------------------------
-  it('E2E-PROFILE-03: PATCH /profile dengan phone_number disisipkan → 400, DB tidak berubah', async () => {
+  it('E2E-PROFILE-03: PUT /profile dengan phone_number disisipkan → 400, DB tidak berubah', async () => {
     const { phone, accessToken } = await registerAndLogin();
 
     const res = await request(app.getHttpServer())
-      .patch('/api/v1/profile')
+      .put('/api/v1/profile')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ first_name: 'Guntur', phone_number: '089900000000' })
       .expect(400);
@@ -152,11 +155,11 @@ describe('Profile E2E', () => {
     expect(userInDb?.firstName).toBe('Profile'); // first_name also NOT partially applied
   });
 
-  it('PATCH /profile dengan pin disisipkan (bahkan null) → 400, request gagal total', async () => {
+  it('PUT /profile dengan pin disisipkan (bahkan null) → 400, request gagal total', async () => {
     const { accessToken } = await registerAndLogin();
 
     const res = await request(app.getHttpServer())
-      .patch('/api/v1/profile')
+      .put('/api/v1/profile')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ first_name: 'Guntur', pin: null })
       .expect(400);
@@ -166,13 +169,13 @@ describe('Profile E2E', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // E2E-PROFILE-04: PATCH /profile with empty body → 400
+  // E2E-PROFILE-04: PUT /profile with empty body → 400
   // ---------------------------------------------------------------------------
-  it('E2E-PROFILE-04: PATCH /profile dengan body kosong → 400 validation error', async () => {
+  it('E2E-PROFILE-04: PUT /profile dengan body kosong → 400 validation error', async () => {
     const { accessToken } = await registerAndLogin();
 
     const res = await request(app.getHttpServer())
-      .patch('/api/v1/profile')
+      .put('/api/v1/profile')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({})
       .expect(400);
@@ -181,9 +184,9 @@ describe('Profile E2E', () => {
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
-  it('PATCH /profile tanpa token → 401', async () => {
+  it('PUT /profile tanpa token → 401', async () => {
     const res = await request(app.getHttpServer())
-      .patch('/api/v1/profile')
+      .put('/api/v1/profile')
       .send({ first_name: 'Guntur' })
       .expect(401);
 

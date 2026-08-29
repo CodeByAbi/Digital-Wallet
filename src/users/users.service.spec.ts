@@ -37,6 +37,7 @@ describe('UsersService', () => {
         phoneNumber: '081234567890',
         address: 'Jl. Testing No. 1',
         balance: BigInt(370000),
+        updatedAt: new Date('2026-08-30T00:00:00.000Z'),
       });
 
       const result = await service.getProfile(FAKE_USER_ID);
@@ -48,6 +49,7 @@ describe('UsersService', () => {
         phone_number: '081234567890',
         address: 'Jl. Testing No. 1',
         balance: 370000,
+        updated_date: '2026-08-30T00:00:00.000Z',
       });
       expect(prismaMock.user.findUniqueOrThrow).toHaveBeenCalledWith({
         where: { id: FAKE_USER_ID },
@@ -69,6 +71,7 @@ describe('UsersService', () => {
         phoneNumber: '081234567890',
         address: 'Jl. Testing No. 1',
         balance: BigInt(0),
+        updatedAt: new Date('2026-08-30T00:00:00.000Z'),
       });
 
       const result = await service.updateProfile(FAKE_USER_ID, {
@@ -92,6 +95,7 @@ describe('UsersService', () => {
         phoneNumber: '081234567890',
         address: 'Jl. Baru No. 2',
         balance: BigInt(0),
+        updatedAt: new Date('2026-08-30T00:00:00.000Z'),
       });
 
       await service.updateProfile(FAKE_USER_ID, {

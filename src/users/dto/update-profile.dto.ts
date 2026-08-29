@@ -1,7 +1,7 @@
 import { IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
 
 /**
- * DTO for PATCH /api/v1/profile — validated per SRS Section 3.5.
+ * DTO for PUT /api/v1/profile — validated per SRS Section 3.5.
  *
  * phone_number/pin are deliberately NOT declared here. Presence of either is
  * rejected upfront by RejectImmutableProfileFieldsGuard (see ../guards),

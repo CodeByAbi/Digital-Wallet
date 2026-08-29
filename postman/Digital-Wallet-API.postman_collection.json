@@ -1,0 +1,371 @@
+{
+  "info": {
+    "name": "Digital Wallet API",
+    "description": "Happy-path + key failure cases per endpoint (SRS.md). Not exhaustive — see docs/TDD.md Section 2. Select the \"Digital Wallet API - Local\" environment before running; the Auth folder's requests auto-populate access_token/refresh_token for the rest of the collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('demo_phone')) {",
+          "  pm.collectionVariables.set('demo_phone', '08' + Math.floor(100000000 + Math.random() * 900000000));",
+          "}",
+          "if (!pm.collectionVariables.get('demo_phone_recipient')) {",
+          "  pm.collectionVariables.set('demo_phone_recipient', '08' + Math.floor(100000000 + Math.random() * 900000000));",
+          "}",
+          "if (!pm.collectionVariables.get('idempotency_key_demo')) {",
+          "  pm.collectionVariables.set('idempotency_key_demo', pm.variables.replaceIn('{{$guid}}'));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "demo_phone", "value": "" },
+    { "key": "demo_phone_recipient", "value": "" },
+    { "key": "idempotency_key_demo", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Demo\",\n  \"last_name\": \"Sender\",\n  \"phone_number\": \"{{demo_phone}}\",\n  \"address\": \"Jl. Demo No. 1\",\n  \"pin\": \"123456\"\n}"
+            },
+            "url": "{{base_url}}/register"
+          }
+        },
+        {
+          "name": "Register Recipient",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Demo\",\n  \"last_name\": \"Recipient\",\n  \"phone_number\": \"{{demo_phone_recipient}}\",\n  \"address\": \"Jl. Demo No. 2\",\n  \"pin\": \"123456\"\n}"
+            },
+            "url": "{{base_url}}/register"
+          }
+        },
+        {
+          "name": "Register - Duplicate Phone Number (409)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Demo\",\n  \"last_name\": \"Sender\",\n  \"phone_number\": \"{{demo_phone}}\",\n  \"address\": \"Jl. Demo No. 1\",\n  \"pin\": \"123456\"\n}"
+            },
+            "url": "{{base_url}}/register",
+            "description": "Run the Register request above first. Same phone_number → 409 PHONE_NUMBER_ALREADY_REGISTERED."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.environment.set('access_token', body.result.access_token);",
+                  "  pm.environment.set('refresh_token', body.result.refresh_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"{{demo_phone}}\",\n  \"pin\": \"123456\"\n}"
+            },
+            "url": "{{base_url}}/login",
+            "description": "Saves access_token/refresh_token into the active environment on success — run this before any Profile/Wallet/Transactions request."
+          }
+        },
+        {
+          "name": "Login - Invalid PIN (401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"{{demo_phone}}\",\n  \"pin\": \"000000\"\n}"
+            },
+            "url": "{{base_url}}/login"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.environment.set('access_token', body.result.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{base_url}}/refresh-token"
+          }
+        },
+        {
+          "name": "Refresh Token - Invalid Token (401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"token-ngaco-asal-invalid\"\n}"
+            },
+            "url": "{{base_url}}/refresh-token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": { "method": "GET", "url": "{{base_url}}/profile" }
+        },
+        {
+          "name": "Get Profile - No Token (401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/profile"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Demo Updated\",\n  \"address\": \"Jl. Baru No. 2\"\n}"
+            },
+            "url": "{{base_url}}/profile"
+          }
+        },
+        {
+          "name": "Update Profile - Reject phone_number (400)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Demo\",\n  \"phone_number\": \"089900000000\"\n}"
+            },
+            "url": "{{base_url}}/profile",
+            "description": "phone_number/pin are immutable via this endpoint — whole request is rejected, not silently dropped."
+          }
+        },
+        {
+          "name": "Update Profile - Empty Body (400)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{base_url}}/profile"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Top Up",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 500000\n}" },
+            "url": "{{base_url}}/topup"
+          }
+        },
+        {
+          "name": "Top Up - Below Minimum (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 5000\n}" },
+            "url": "{{base_url}}/topup",
+            "description": "Minimum top-up is Rp10.000."
+          }
+        },
+        {
+          "name": "Pay",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 25000,\n  \"remarks\": \"Lunch payment\"\n}"
+            },
+            "url": "{{base_url}}/pay",
+            "description": "Run Top Up first so the balance covers this amount."
+          }
+        },
+        {
+          "name": "Pay - Insufficient Balance (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 999999999,\n  \"remarks\": \"More than balance\"\n}"
+            },
+            "url": "{{base_url}}/pay"
+          }
+        },
+        {
+          "name": "Pay - Duplicate Idempotency Key, Different Payload (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idempotency_key_demo}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10000,\n  \"remarks\": \"First call with this key\"\n}"
+            },
+            "url": "{{base_url}}/pay",
+            "description": "Send this request twice: 1st call succeeds (201) and reserves idempotency_key_demo. Edit the amount and send again → 409 DUPLICATE_IDEMPOTENCY_KEY. Same key + same payload replayed instead returns the original 201 result."
+          }
+        },
+        {
+          "name": "Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_phone_number\": \"{{demo_phone_recipient}}\",\n  \"amount\": 50000,\n  \"remarks\": \"Hadiah\"\n}"
+            },
+            "url": "{{base_url}}/transfer",
+            "description": "Run \"Register Recipient\" first so target_phone_number exists. Response status SUCCESS here means the sender's balance is finally debited — the recipient's credit still happens async via the worker."
+          }
+        },
+        {
+          "name": "Transfer - Insufficient Balance (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_phone_number\": \"{{demo_phone_recipient}}\",\n  \"amount\": 999999999\n}"
+            },
+            "url": "{{base_url}}/transfer"
+          }
+        },
+        {
+          "name": "Transfer - Self Transfer (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_phone_number\": \"{{demo_phone}}\",\n  \"amount\": 10000\n}"
+            },
+            "url": "{{base_url}}/transfer"
+          }
+        },
+        {
+          "name": "Transfer - Recipient Not Found (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_phone_number\": \"089999999999\",\n  \"amount\": 10000\n}"
+            },
+            "url": "{{base_url}}/transfer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "List Transactions",
+          "request": { "method": "GET", "url": "{{base_url}}/transactions" }
+        },
+        {
+          "name": "List Transactions - Paginated",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/transactions?page=2&limit=1"
+          }
+        },
+        {
+          "name": "List Transactions - No Token (401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/transactions"
+          }
+        }
+      ]
+    }
+  ]
+}

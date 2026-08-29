@@ -183,14 +183,15 @@ Base URL: `/api/v1`
   "status": "SUCCESS",
   "result": {
     "user_id": "...", "first_name": "...", "last_name": "...",
-    "phone_number": "...", "address": "...", "balance": 370000
+    "phone_number": "...", "address": "...", "balance": 370000,
+    "updated_date": "2026-08-30T00:00:00.000Z"
   }
 }
 ```
 
 ---
 
-### 3.5 `PATCH /profile`
+### 3.5 `PUT /profile`
 
 **Auth:** Bearer access_token
 
@@ -201,7 +202,7 @@ Base URL: `/api/v1`
 
 **Validasi:** sama seperti register untuk field yang sama. Kalau request menyertakan `phone_number` atau `pin`, seluruh request **direject** dengan validation error (400) — bukan diabaikan diam-diam, supaya client sadar sebagian payload-nya invalid. Body kosong / tidak ada field valid juga direject, bukan no-op.
 
-**Response SUCCESS (200):** profil terbaru, format sama seperti `GET /profile`.
+**Response SUCCESS (200):** profil terbaru, format sama seperti `GET /profile` (termasuk `updated_date`).
 
 ---
 
