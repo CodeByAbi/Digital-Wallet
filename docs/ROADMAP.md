@@ -59,8 +59,8 @@ Item yang masih outstanding dari sesi TDD kemarin (config backoff jadi env-confi
 - [x] Unit + integration test paralel (Q-01 s/d Q-04, E2E-TRF-01 s/d 04)
 
 ## Phase 7 — Transaction Report
-- [ ] `GET /transactions` — pagination, urut terbaru dulu
-- [ ] Unit + E2E test paralel (UT-TXN, E2E-TXN-01 s/d 03)
+- [x] `GET /transactions` — pagination, urut terbaru dulu
+- [x] Unit + E2E test paralel (UT-TXN, E2E-TXN-01 s/d 03)
 
 ## Phase 8 — Testing Consolidation
 - [ ] Isi gap unit/integration/E2E test yang belum tercover dari phase sebelumnya
