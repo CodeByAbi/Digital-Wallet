@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bullmq';
 import { TransferProcessor } from './transfer.processor';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PROCESS_TRANSFER_JOB, TransferJobData } from './transfer-queue.constants';
+import {
+  PROCESS_TRANSFER_JOB,
+  TransferJobData,
+} from './transfer-queue.constants';
 
 const TRANSFER_ID = 'transfer-id';
 const SENDER_ID = 'sender-id';
@@ -16,10 +19,12 @@ const txMock = {
 };
 
 const prismaMock = {
-  $transaction: jest.fn() as jest.Mock,
+  $transaction: jest.fn(),
 };
 
-function fakeJob(overrides: Partial<Job<TransferJobData>> = {}): Job<TransferJobData> {
+function fakeJob(
+  overrides: Partial<Job<TransferJobData>> = {},
+): Job<TransferJobData> {
   return {
     name: PROCESS_TRANSFER_JOB,
     data: { transferId: TRANSFER_ID },
@@ -34,12 +39,15 @@ describe('TransferProcessor', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    prismaMock.$transaction.mockImplementation((cb: (tx: typeof txMock) => unknown) =>
-      cb(txMock),
+    prismaMock.$transaction.mockImplementation(
+      (cb: (tx: typeof txMock) => unknown) => cb(txMock),
     );
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TransferProcessor, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        TransferProcessor,
+        { provide: PrismaService, useValue: prismaMock },
+      ],
     }).compile();
 
     processor = module.get<TransferProcessor>(TransferProcessor);
@@ -55,7 +63,9 @@ describe('TransferProcessor', () => {
       amount: BigInt(30000),
       status: 'PENDING',
     });
-    txMock.$queryRaw.mockResolvedValue([{ id: RECIPIENT_ID, balance: BigInt(100000) }]);
+    txMock.$queryRaw.mockResolvedValue([
+      { id: RECIPIENT_ID, balance: BigInt(100000) },
+    ]);
 
     await processor.process(fakeJob());
 
@@ -96,7 +106,9 @@ describe('TransferProcessor', () => {
         amount: BigInt(30000),
         status: 'SUCCESS', // already processed by the first call
       });
-    txMock.$queryRaw.mockResolvedValue([{ id: RECIPIENT_ID, balance: BigInt(100000) }]);
+    txMock.$queryRaw.mockResolvedValue([
+      { id: RECIPIENT_ID, balance: BigInt(100000) },
+    ]);
 
     await processor.process(fakeJob());
     await processor.process(fakeJob());
@@ -117,9 +129,13 @@ describe('TransferProcessor', () => {
       amount: BigInt(30000),
       status: 'PENDING',
     });
-    txMock.$queryRaw.mockResolvedValue([{ id: SENDER_ID, balance: BigInt(70000) }]);
+    txMock.$queryRaw.mockResolvedValue([
+      { id: SENDER_ID, balance: BigInt(70000) },
+    ]);
 
-    await processor.onFailed(fakeJob({ attemptsMade: 5, opts: { attempts: 5 } }));
+    await processor.onFailed(
+      fakeJob({ attemptsMade: 5, opts: { attempts: 5 } }),
+    );
 
     expect(txMock.user.update).toHaveBeenCalledWith({
       where: { id: SENDER_ID },
@@ -141,7 +157,9 @@ describe('TransferProcessor', () => {
   });
 
   it('does not refund while retries remain', async () => {
-    await processor.onFailed(fakeJob({ attemptsMade: 2, opts: { attempts: 5 } }));
+    await processor.onFailed(
+      fakeJob({ attemptsMade: 2, opts: { attempts: 5 } }),
+    );
 
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
@@ -155,7 +173,9 @@ describe('TransferProcessor', () => {
       status: 'FAILED', // an earlier failure event already refunded this
     });
 
-    await processor.onFailed(fakeJob({ attemptsMade: 5, opts: { attempts: 5 } }));
+    await processor.onFailed(
+      fakeJob({ attemptsMade: 5, opts: { attempts: 5 } }),
+    );
 
     expect(txMock.user.update).not.toHaveBeenCalled();
     expect(txMock.transfer.update).not.toHaveBeenCalled();

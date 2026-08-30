@@ -22,7 +22,8 @@ describe('RC-03: concurrent identical-Idempotency-Key requests', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const uniqueSuffix = () => String(Math.floor(Math.random() * 900000) + 100000);
+  const uniqueSuffix = () =>
+    String(Math.floor(Math.random() * 900000) + 100000);
 
   const registerAndLogin = async (
     prefix: string,
@@ -47,7 +48,8 @@ describe('RC-03: concurrent identical-Idempotency-Key requests', () => {
       .send({ phone_number: phone, pin })
       .expect(200);
 
-    const accessToken = (loginRes.body.result as { access_token: string }).access_token;
+    const accessToken = (loginRes.body.result as { access_token: string })
+      .access_token;
 
     if (initialTopUp > 0) {
       await request(app.getHttpServer())
@@ -67,7 +69,9 @@ describe('RC-03: concurrent identical-Idempotency-Key requests', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new ResponseInterceptor());
 
@@ -95,7 +99,9 @@ describe('RC-03: concurrent identical-Idempotency-Key requests', () => {
       await prisma.refreshToken.deleteMany({
         where: { user: { phoneNumber: { startsWith: prefix } } },
       });
-      await prisma.user.deleteMany({ where: { phoneNumber: { startsWith: prefix } } });
+      await prisma.user.deleteMany({
+        where: { phoneNumber: { startsWith: prefix } },
+      });
     }
     await app.close();
   });
@@ -125,7 +131,9 @@ describe('RC-03: concurrent identical-Idempotency-Key requests', () => {
     });
     expect(paymentCount).toBe(1);
 
-    const userInDb = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+    const userInDb = await prisma.user.findUnique({
+      where: { phoneNumber: phone },
+    });
     expect(Number(userInDb?.balance)).toBe(400000); // debited exactly once, not twice
   });
 
@@ -153,7 +161,9 @@ describe('RC-03: concurrent identical-Idempotency-Key requests', () => {
     });
     expect(transferCount).toBe(1);
 
-    const senderInDb = await prisma.user.findUnique({ where: { phoneNumber: sender.phone } });
+    const senderInDb = await prisma.user.findUnique({
+      where: { phoneNumber: sender.phone },
+    });
     expect(Number(senderInDb?.balance)).toBe(400000); // debited exactly once, not twice
   });
 });

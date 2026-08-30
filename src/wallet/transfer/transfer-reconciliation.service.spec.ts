@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
 import { TransferReconciliationService } from './transfer-reconciliation.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TRANSFER_QUEUE, PROCESS_TRANSFER_JOB } from './transfer-queue.constants';
+import {
+  TRANSFER_QUEUE,
+  PROCESS_TRANSFER_JOB,
+} from './transfer-queue.constants';
 
 const prismaMock = {
   transfer: { findMany: jest.fn() },
@@ -24,7 +27,9 @@ describe('TransferReconciliationService', () => {
       ],
     }).compile();
 
-    service = module.get<TransferReconciliationService>(TransferReconciliationService);
+    service = module.get<TransferReconciliationService>(
+      TransferReconciliationService,
+    );
   });
 
   // ---------------------------------------------------------------------------

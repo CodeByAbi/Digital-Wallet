@@ -13,7 +13,10 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Get()
-  async list(@Query() dto: ListTransactionsDto, @CurrentUserId() userId: string) {
+  async list(
+    @Query() dto: ListTransactionsDto,
+    @CurrentUserId() userId: string,
+  ) {
     return this.transactionsService.list(userId, dto);
   }
 }

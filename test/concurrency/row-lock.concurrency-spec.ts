@@ -16,7 +16,8 @@ describe('IT-DB-03: SELECT ... FOR UPDATE blocks a concurrent lock attempt', () 
   const clientB = new PrismaClient();
   let userId: string;
 
-  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
   beforeAll(async () => {
     await clientA.$connect();
@@ -65,11 +66,13 @@ describe('IT-DB-03: SELECT ... FOR UPDATE blocks a concurrent lock attempt', () 
     // B must not have acquired the lock before A released it — proves the
     // second connection genuinely blocked on the row lock instead of
     // reading straight through.
-    expect(events.indexOf('B-acquired')).toBeGreaterThan(events.indexOf('A-released'));
+    expect(events.indexOf('B-acquired')).toBeGreaterThan(
+      events.indexOf('A-released'),
+    );
     expect(events).toEqual(['A-acquired', 'A-released', 'B-acquired']);
   });
 
-  it('unrelated rows are NOT blocked by another row\'s lock', async () => {
+  it("unrelated rows are NOT blocked by another row's lock", async () => {
     const otherUser = await clientA.user.create({
       data: {
         firstName: 'RowLock',
@@ -105,7 +108,9 @@ describe('IT-DB-03: SELECT ... FOR UPDATE blocks a concurrent lock attempt', () 
         events.indexOf('A-released'),
       );
     } finally {
-      await clientA.user.delete({ where: { id: otherUser.id } }).catch(() => undefined);
+      await clientA.user
+        .delete({ where: { id: otherUser.id } })
+        .catch(() => undefined);
     }
   });
 });

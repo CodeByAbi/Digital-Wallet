@@ -18,7 +18,8 @@ describe('Concurrent /register with the identical phone_number', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const uniqueSuffix = () => String(Math.floor(Math.random() * 900000) + 100000);
+  const uniqueSuffix = () =>
+    String(Math.floor(Math.random() * 900000) + 100000);
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -27,7 +28,9 @@ describe('Concurrent /register with the identical phone_number', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new ResponseInterceptor());
 
@@ -37,7 +40,9 @@ describe('Concurrent /register with the identical phone_number', () => {
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { phoneNumber: { startsWith: '0824' } } });
+    await prisma.user.deleteMany({
+      where: { phoneNumber: { startsWith: '0824' } },
+    });
     await app.close();
   });
 
@@ -62,7 +67,9 @@ describe('Concurrent /register with the identical phone_number', () => {
     const failed = resA.status === 409 ? resA : resB;
     expect(failed.body.error.code).toBe('PHONE_NUMBER_ALREADY_REGISTERED');
 
-    const userCount = await prisma.user.count({ where: { phoneNumber: phone } });
+    const userCount = await prisma.user.count({
+      where: { phoneNumber: phone },
+    });
     expect(userCount).toBe(1);
   });
 });

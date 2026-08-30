@@ -35,7 +35,9 @@ describe('JwtAuthGuard', () => {
     jwtServiceMock.verify.mockImplementation(() => {
       throw new Error('jwt expired');
     });
-    const { context } = buildContext({ authorization: 'Bearer expired.token.here' });
+    const { context } = buildContext({
+      authorization: 'Bearer expired.token.here',
+    });
 
     let caught: AppException | undefined;
     try {
@@ -54,7 +56,9 @@ describe('JwtAuthGuard', () => {
     jwtServiceMock.verify.mockImplementation(() => {
       throw new Error('invalid signature');
     });
-    const { context } = buildContext({ authorization: 'Bearer not-a-real-jwt' });
+    const { context } = buildContext({
+      authorization: 'Bearer not-a-real-jwt',
+    });
 
     expect(() => guard.canActivate(context)).toThrow(AppException);
     expect(() => guard.canActivate(context)).toThrow(

@@ -61,7 +61,10 @@ describe('TransferDto', () => {
       ['+62811234567', 'international +62 prefix'],
       ['62811234567', 'international 62 prefix (no plus)'],
     ])('accepts %s (%s)', async (phone) => {
-      const dto = plainToInstance(TransferDto, { target_phone_number: phone, amount: 10000 });
+      const dto = plainToInstance(TransferDto, {
+        target_phone_number: phone,
+        amount: 10000,
+      });
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
     });
@@ -73,9 +76,14 @@ describe('TransferDto', () => {
       ['081abcdefgh', 'non-numeric'],
       ['', 'empty string'],
     ])('rejects %s (%s)', async (phone) => {
-      const dto = plainToInstance(TransferDto, { target_phone_number: phone, amount: 10000 });
+      const dto = plainToInstance(TransferDto, {
+        target_phone_number: phone,
+        amount: 10000,
+      });
       const errors = await validate(dto);
-      expect(errors.some((e) => e.property === 'target_phone_number')).toBe(true);
+      expect(errors.some((e) => e.property === 'target_phone_number')).toBe(
+        true,
+      );
     });
   });
 

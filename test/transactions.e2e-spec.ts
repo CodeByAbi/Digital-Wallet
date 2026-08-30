@@ -18,7 +18,8 @@ describe('Transactions E2E', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const uniqueSuffix = () => String(Math.floor(Math.random() * 900000) + 100000);
+  const uniqueSuffix = () =>
+    String(Math.floor(Math.random() * 900000) + 100000);
 
   const registerAndLogin = async (
     prefix: string,
@@ -44,7 +45,8 @@ describe('Transactions E2E', () => {
 
     return {
       phone,
-      accessToken: (loginRes.body.result as { access_token: string }).access_token,
+      accessToken: (loginRes.body.result as { access_token: string })
+        .access_token,
     };
   };
 
@@ -55,7 +57,9 @@ describe('Transactions E2E', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new ResponseInterceptor());
 
@@ -81,7 +85,9 @@ describe('Transactions E2E', () => {
       await prisma.refreshToken.deleteMany({
         where: { user: { phoneNumber: { startsWith: prefix } } },
       });
-      await prisma.user.deleteMany({ where: { phoneNumber: { startsWith: prefix } } });
+      await prisma.user.deleteMany({
+        where: { phoneNumber: { startsWith: prefix } },
+      });
     }
     await app.close();
   });
@@ -111,7 +117,11 @@ describe('Transactions E2E', () => {
       .post('/api/v1/transfer')
       .set('Authorization', `Bearer ${accessToken}`)
       .set('Idempotency-Key', randomUUID())
-      .send({ target_phone_number: recipient.phone, amount: 30000, remarks: 'Hadiah' })
+      .send({
+        target_phone_number: recipient.phone,
+        amount: 30000,
+        remarks: 'Hadiah',
+      })
       .expect(201);
 
     const res = await request(app.getHttpServer())

@@ -1,4 +1,11 @@
-import { IsInt, Min, Max, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsInt,
+  Min,
+  Max,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 const MAX_PAYMENT_AMOUNT = 50_000_000; // mirrors topup upper bound — no spec value given
 

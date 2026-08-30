@@ -49,7 +49,14 @@ export class AuthService {
   async register(dto: RegisterDto): Promise<RegisterResult> {
     const pinHash = await bcrypt.hash(dto.pin, BCRYPT_COST);
 
-    let user: { id: string; firstName: string; lastName: string; phoneNumber: string; address: string; createdAt: Date };
+    let user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      phoneNumber: string;
+      address: string;
+      createdAt: Date;
+    };
     try {
       user = await this.prisma.user.create({
         data: {

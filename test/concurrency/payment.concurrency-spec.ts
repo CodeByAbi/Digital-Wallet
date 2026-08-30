@@ -22,7 +22,8 @@ describe('RC-01: concurrent /payment from the same sender', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const uniqueSuffix = () => String(Math.floor(Math.random() * 900000) + 100000);
+  const uniqueSuffix = () =>
+    String(Math.floor(Math.random() * 900000) + 100000);
 
   const registerAndLogin = async (
     initialTopUp: number,
@@ -46,7 +47,8 @@ describe('RC-01: concurrent /payment from the same sender', () => {
       .send({ phone_number: phone, pin })
       .expect(200);
 
-    const accessToken = (loginRes.body.result as { access_token: string }).access_token;
+    const accessToken = (loginRes.body.result as { access_token: string })
+      .access_token;
 
     await request(app.getHttpServer())
       .post('/api/v1/topup')
@@ -64,7 +66,9 @@ describe('RC-01: concurrent /payment from the same sender', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new ResponseInterceptor());
 
@@ -86,7 +90,9 @@ describe('RC-01: concurrent /payment from the same sender', () => {
     await prisma.refreshToken.deleteMany({
       where: { user: { phoneNumber: { startsWith: '0818' } } },
     });
-    await prisma.user.deleteMany({ where: { phoneNumber: { startsWith: '0818' } } });
+    await prisma.user.deleteMany({
+      where: { phoneNumber: { startsWith: '0818' } },
+    });
     await app.close();
   });
 
@@ -112,7 +118,9 @@ describe('RC-01: concurrent /payment from the same sender', () => {
     // The load-bearing assertion: check the ACTUAL balance in the DB, not
     // just the HTTP responses — a race at the application layer could still
     // leave the row inconsistent even if both responses "look" correct.
-    const userInDb = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+    const userInDb = await prisma.user.findUnique({
+      where: { phoneNumber: phone },
+    });
     expect(Number(userInDb?.balance)).toBe(50000);
 
     const paymentCount = await prisma.payment.count({
