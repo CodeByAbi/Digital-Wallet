@@ -11,7 +11,7 @@ const FORBIDDEN_FIELDS = ['phone_number', 'pin'] as const;
 const ALLOWED_FIELDS = ['first_name', 'last_name', 'address'] as const;
 
 /**
- * Single auditable gate for PATCH /profile's immutable-field rule (deviation
+ * Single auditable gate for PUT /profile's immutable-field rule (deviation
  * from ROADMAP.md's original plan: phone_number/pin are REJECTED, not
  * silently ignored — see ROADMAP.md item 4 and SRS.md Section 3.5).
  *

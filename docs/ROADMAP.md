@@ -8,7 +8,7 @@ Roadmap awal yang lo kasih di awal jadi basis, tapi ada 4 perubahan struktural d
 1. **Testing tidak lagi jadi satu phase di akhir** — TDD Section 13 sudah eksplisit bilang ini salah kalau ditumpuk di belakang: unit test ditulis paralel tiap phase, cuma gap-filling + concurrency suite yang jadi phase terpisah menjelang akhir.
 2. **`docker-compose.test.yml` pindah ke Phase 1**, bukan nunggu Phase testing — supaya bisa mulai nulis test dari hari pertama.
 3. **FE dipisah jadi phase paling akhir, eksplisit optional** — sesuai instruksi lo dari awal (backend + API + DB prioritas, FE nice-to-have).
-4. Behavior PATCH /profile untuk field terlarang (phone_number/pin) diubah dari silent-ignore (sesuai draft awal SRS 3.4) menjadi explicit-reject. Alasan: silent-ignore berisiko bikin user tidak sadar requestnya sebagian di-drop tanpa notifikasi. Deviasi ini PERLU dicek ulang ke SRS.md Section 3.4 — kalau SRS masih menulis versi silent-ignore, update juga SRS.md supaya kedua dokumen konsisten, jangan biarkan ROADMAP dan SRS saling kontradiksi.
+4. Behavior PUT /profile untuk field terlarang (phone_number/pin) diubah dari silent-ignore (sesuai draft awal SRS 3.4) menjadi explicit-reject. Alasan: silent-ignore berisiko bikin user tidak sadar requestnya sebagian di-drop tanpa notifikasi. Deviasi ini PERLU dicek ulang ke SRS.md Section 3.4 — kalau SRS masih menulis versi silent-ignore, update juga SRS.md supaya kedua dokumen konsisten, jangan biarkan ROADMAP dan SRS saling kontradiksi.
 
 Item yang masih outstanding dari sesi TDD kemarin (config backoff jadi env-configurable) sudah dimasukkan ke Phase 6 di bawah.
 
@@ -39,7 +39,7 @@ Item yang masih outstanding dari sesi TDD kemarin (config backoff jadi env-confi
 
 ## Phase 4 — Profile
 - [ ] `GET /profile` *(addition — SRS 3.4)*
-- [ ] `PATCH /profile` — whitelist field `first_name`/`last_name`/`address`; kalau `phone_number`/`pin` disisipkan di body, REJECT seluruh request dengan validation error (400) — bukan diabaikan diam-diam. Body kosong / tidak ada field valid juga direject, bukan no-op.
+- [ ] `PUT /profile` — whitelist field `first_name`/`last_name`/`address`; kalau `phone_number`/`pin` disisipkan di body, REJECT seluruh request dengan validation error (400) — bukan diabaikan diam-diam. Body kosong / tidak ada field valid juga direject, bukan no-op.
 - [ ] Unit + E2E test paralel (E2E-PROFILE-01 s/d 03)
 
 ## Phase 5 — Top Up & Payment
