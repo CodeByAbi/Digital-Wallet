@@ -206,6 +206,27 @@ describe('Transfer E2E', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // TDD Section 10 edge case: amount exactly equals balance → succeeds with
+  // balance_after = 0, must not be mistakenly rejected as insufficient.
+  // ---------------------------------------------------------------------------
+  it('amount pas sama dengan saldo → 201, balance_after = 0', async () => {
+    const sender = await registerAndLogin('0816', 100000);
+    const recipient = await registerAndLogin('0817');
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/transfer')
+      .set('Authorization', `Bearer ${sender.accessToken}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ target_phone_number: recipient.phone, amount: 100000 })
+      .expect(201);
+
+    expect(res.body.result.balance_after).toBe(0);
+
+    const senderInDb = await prisma.user.findUnique({ where: { phoneNumber: sender.phone } });
+    expect(Number(senderInDb?.balance)).toBe(0);
+  });
+
+  // ---------------------------------------------------------------------------
   // Idempotency-Key sama + payload sama diulang → response identik, hanya 1
   // transfer row, saldo sender terpotong sekali
   // ---------------------------------------------------------------------------
