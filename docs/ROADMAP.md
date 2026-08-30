@@ -15,27 +15,27 @@ Item yang masih outstanding dari sesi TDD kemarin (config backoff jadi env-confi
 ---
 
 ## Phase 1 — Project Setup & Infra
-- [ ] Init NestJS project + git repo
-- [ ] `.gitignore` (node_modules, .env, dist) + `.env.example`
-- [ ] `docker-compose.yml` — Postgres + Redis (dev), dengan `--appendonly yes` untuk Redis (SYSTEM_DESIGN 6.1)
-- [ ] `docker-compose.test.yml` — Postgres + Redis terpisah untuk test environment (TDD Section 13)
-- [ ] Setup Prisma, koneksi ke DB
-- [ ] Struktur folder module (SYSTEM_DESIGN Section 3): `auth/`, `users/`, `wallet/`, `transactions/`, `prisma/`, `common/`
+- [x] Init NestJS project + git repo
+- [x] `.gitignore` (node_modules, .env, dist) + `.env.example`
+- [x] `docker-compose.yml` — Postgres + Redis (dev), dengan `--appendonly yes` untuk Redis (SYSTEM_DESIGN 6.1)
+- [x] `docker-compose.test.yml` — Postgres + Redis terpisah untuk test environment (TDD Section 13)
+- [x] Setup Prisma, koneksi ke DB
+- [x] Struktur folder module (SYSTEM_DESIGN Section 3): `auth/`, `users/`, `wallet/`, `transactions/`, `prisma/`, `common/`
 
 ## Phase 2 — Database Schema
-- [ ] Prisma schema: `users`, `refresh_tokens`, `top_ups`, `payments`, `transfers`, `transactions` (ledger — SRS 7.2)
-- [ ] Migration awal
-- [ ] Index: `phone_number` unique, `idempotency_key` unique (payments & transfers), composite `(user_id, created_at)` di transactions (SRS 7.4)
-- [ ] Seed script sederhana (opsional, memudahkan testing manual)
+- [x] Prisma schema: `users`, `refresh_tokens`, `top_ups`, `payments`, `transfers`, `transactions` (ledger — SRS 7.2)
+- [x] Migration awal
+- [x] Index: `phone_number` unique, `idempotency_key` unique (payments & transfers), composite `(user_id, created_at)` di transactions (SRS 7.4)
+- [x] Seed script sederhana (opsional, memudahkan testing manual)
 
 ## Phase 3 — Authentication
-- [ ] `POST /register` — validasi, hash PIN (bcrypt), unique phone_number
-- [ ] `POST /login` — verifikasi PIN, generate access+refresh token
-- [ ] Lockout mechanism (5x gagal → locked sementara)
-- [ ] `POST /refresh-token` *(addition — SRS 3.3)*
-- [ ] JWT Guard + middleware auth
-- [ ] Unit test AuthService paralel di phase ini (UT-AUTH-01 s/d 06)
-- [ ] E2E test register/login/refresh (E2E-REG, E2E-LOGIN, E2E-REFRESH)
+- [x] `POST /register` — validasi, hash PIN (bcrypt), unique phone_number
+- [x] `POST /login` — verifikasi PIN, generate access+refresh token
+- [x] Lockout mechanism (5x gagal → locked sementara)
+- [x] `POST /refresh-token` *(addition — SRS 3.3)*
+- [x] JWT Guard + middleware auth
+- [x] Unit test AuthService paralel di phase ini (UT-AUTH-01 s/d 06)
+- [x] E2E test register/login/refresh (E2E-REG, E2E-LOGIN, E2E-REFRESH)
 
 ## Phase 4 — Profile
 - [ ] `GET /profile` *(addition — SRS 3.4)*
@@ -69,9 +69,9 @@ Item yang masih outstanding dari sesi TDD kemarin (config backoff jadi env-confi
 - [x] Cek coverage: service layer 80%+ (TDD Section 12) — enforced via `coverageThreshold` di package.json (auth/users/transactions/wallet `*.service.ts`, 80% stmt/line/func, 70% branch); semua service saat ini 100% statement coverage kecuali transfer.processor.ts (95%) dan transfer-reconciliation.service.ts (100% stmt, 78% branch)
 
 ## Phase 9 — Documentation & Postman
-- [ ] Postman collection — happy path + kegagalan kunci tiap endpoint (bukan exhaustive, lihat TDD Section 2)
-- [ ] README: cara setup, env vars, cara jalanin migration & seed
-- [ ] API usage examples
+- [x] Postman collection — happy path + kegagalan kunci tiap endpoint (bukan exhaustive, lihat TDD Section 2); lihat `postman/Digital-Wallet-API.postman_collection.json` + environment-nya
+- [x] README: cara setup, env vars, cara jalanin migration & seed — juga sekalian membetulkan README lama yang salah menyebut broker-nya RabbitMQ (aktualnya Redis + BullMQ, sesuai CLAUDE.md/SYSTEM_DESIGN) dan port API (3001, bukan 3000)
+- [x] API usage examples — semua endpoint (termasuk `/transfer` dan `/transactions` yang belum ada contohnya) + tabel error code lengkap
 
 ## Phase 10 — Finalization
 - [ ] Code cleanup
