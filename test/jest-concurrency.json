@@ -1,0 +1,15 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".concurrency-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "transformIgnorePatterns": [
+    "/node_modules/(?!(@nestjs/bullmq|@nestjs/bull-shared|@nestjs/schedule)/)"
+  ],
+  "globalSetup": "<rootDir>/setup-env.ts",
+  "maxWorkers": 1,
+  "testTimeout": 30000
+}
